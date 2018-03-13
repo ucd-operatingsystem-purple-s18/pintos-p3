@@ -1,3 +1,11 @@
+
+PINTOS PROJECT2
+
+Jonathon Becker
+Nate Terry
+
+ucd-operatingsystem-purple-s18
+
 ====================================================
 //Install Brian's preferred editor
 pintos@os-dev:~$ sudo apt-get install geany
@@ -10,14 +18,6 @@ To run the test file:
 ====================================================
 To run a single test:
 	pintos@os-dev:~/pintos/src/userprog$ pintos run test-args-single
-
-PINTOS PROJECT2
-
-Jonathon Becker
-Nate Terry
-
-ucd-operatingsystem-purple-s18
-
 
 
 ====================================================
