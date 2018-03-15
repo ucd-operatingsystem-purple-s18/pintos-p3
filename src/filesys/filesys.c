@@ -1,4 +1,6 @@
+#include "threads/thread.h"//==============---------
 #include "filesys/filesys.h"
+#include "filesys/cache.h"//==============---------
 #include <debug.h>
 #include <stdio.h>
 #include <string.h>

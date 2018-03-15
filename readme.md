@@ -93,7 +93,14 @@ After downloading, renaming, chmod-ing, and fixing that Carriage Return characte
 ====================================================
 
 ====================================================
+3/14/18
+/home/pintos/pintos/src/userprog/process.c
 
+process_wait (tid_t child_tid UNUSED) 
+{
+  while (true) {} //added
+  return -1;
+}
 ====================================================
 
 ====================================================
