@@ -33,10 +33,15 @@ process_execute (const char *file_name)
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
+  //process.c - changes 1 start==============
+  int MAX_WORDS = 50;     //Setting a string limit for word @50 (manual)
+  //process.c - changes 1 end================
+  //Original===========start=================
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+  //Original============end================
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
