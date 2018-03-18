@@ -1,7 +1,7 @@
 
 PINTOS PROJECT2
 
-Jonathon Becker
+Johnathan Becker
 Nate Terry
 
 ucd-operatingsystem-purple-s18
