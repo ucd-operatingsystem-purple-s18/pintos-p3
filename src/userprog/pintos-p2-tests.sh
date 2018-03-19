@@ -25,10 +25,10 @@ main ()
         # Run all the following tests that are not commented out:
 
         test-args-none
-        # test-args-single
-        # test-args-multiple
-        # test-args-many
-        # test-args-dbl-space
+        test-args-single
+        test-args-multiple
+        test-args-many
+        test-args-dbl-space
 
         # test-sc-bad-sp
         # test-sc-bad-arg

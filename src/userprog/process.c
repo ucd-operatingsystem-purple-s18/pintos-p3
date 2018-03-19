@@ -162,9 +162,8 @@ process_execute (const char *file_name)
   //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
   tid = thread_create(first_arg, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
-  {
     palloc_free_page(fn_copy);
-    return tid;
+  return tid;
 }
 
 
@@ -208,12 +207,15 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
-  while (true)
+  struct thread* rt_thread;
+  rt_thread = thread_at_tid(child_tid);
+  if(rt_thread->tid == -1)
   {
-
-  } //added 3/14/18
+    return -1;
+  }
+  sema_down(&rt_thread->wait_sema);
   return -1;
 }
 
@@ -361,7 +363,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
     goto done;
-  process_activate ();
+  process_activate();
 
 
   /* Open executable file. */
@@ -606,11 +608,11 @@ setup_stack(void **esp, char* in_args)
         char* current, *buffer;
         char *current_arg[WORD_LIMIT];
 
-        for(current = strtok_r(in_args," ",&buffer); current != NULL; current = strtok_r(NULL," ",&buffer))
+        for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
         {
-          int size_of_curr = strlen(current)+1;
+          int size_of_curr = strlen(current) + 1;
           current_arg[index] = malloc(size_of_curr);
-          strlcpy(current_arg[index],current,size_of_curr);
+          strlcpy(current_arg[index], current, size_of_curr);
           ++index;
         }
 

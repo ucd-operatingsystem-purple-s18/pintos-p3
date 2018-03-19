@@ -7,6 +7,7 @@
 #include "lib/kernel/console.h"
 #include "userprog/process.h"
 #include "devices/shutdown.h"
+#include "lib/user/syscall.h"
 //---------3/18/18 end-----------------------
 
 static void syscall_handler (struct intr_frame *);
@@ -24,7 +25,7 @@ syscall_handler (struct intr_frame *f)
   printf ("\n\nsystem call! from /home/pintos/pintos/src/userprog/syscall.c\n");
   
   int *sys_call_number = (int *) f->esp;
-  printf("System call number is: %d\n", *sys_call_number);
+  //printf("System call number is: %d\n", *sys_call_number);
 
   /*
   3.3.4 System Calls
@@ -67,8 +68,13 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_EXIT:
     {//----------------------
-      printf("SYS_EXIT\n");
-      process_exit();
+      char* thr_name = thread_name();
+      int *exit_code = (int*) (f->esp + 4);
+      int retval = *exit_code;
+      printf("%s: exit(%d)\n",thr_name,*exit_code);
+      f->eax = retval;
+      sema_up(&thread_current()->wait_sema);
+      thread_exit();
       break;
     }
     //----------------------
@@ -134,8 +140,10 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_WAIT:
     {//----------------------
-      break;
-    }
+      pid_t wait_pid = *((pid_t*) (f->esp + 4));
+      printf("Waiting for thread: %d\n",wait_pid);
+      process_wait(wait_pid);
+      break;    }
     //----------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -254,23 +262,14 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_WRITE:
     {//----------------------
-    
-      int *fd = (int*) (f->esp + 4);
-      char *buffer = *((char **) (f->esp + 8));
-      unsigned size = *((unsigned *) (f->esp + 12));
-      //printf("\n\t case SYS_WRITE: {");
-      //printf("\n\t int *fd = (int*) (f->esp - 4);");
-      //printf("\n\t char *buffer = (char *) (f->esp - 8);");
-      //printf("\n\t unsigned *size = (unsigned *) (f->esp - 12);");
-      //printf("\n\t\tCurrent Values: fd: %d, buffer: %s, size: %d", *fd, buffer, **size);
-      
-      printf("Write Call\n");
-
+      int* fd = (int*) (f->esp + 4);
+      char* buffer = *((char**) (f->esp + 8));
+      unsigned size = *((unsigned*) (f->esp + 12));
+      // printf("Write Call!\n");
       int retval = 0;
-      if (*fd == 1)
-      {
-        printf("Write to Console:\n");
-        putbuf(buffer, size);
+      if (*fd == 1){
+        //printf("Write to Console:\n");
+        putbuf(buffer,size);
         retval = size;
       }
       f->eax = retval;
@@ -381,5 +380,5 @@ the process.
     //----------------------------------------------
   }
   
-  thread_exit ();
+  //thread_exit ();
 }
