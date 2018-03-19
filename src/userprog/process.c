@@ -33,15 +33,92 @@ process_execute (const char *file_name)
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-  //process.c - changes 1 start==============
-  int MAX_WORDS = 50;     //Setting a string limit for word @50 (manual)
-  //process.c - changes 1 end================
-  //Original===========start=================
+  //----------------------------------------------
+  //----------------------------------------------
+  //----------------------------------------------
+  //----------------------------------------------
+  //----------------------------------------------
+  //=================process.c - changes 1 start============== - 
+  //MAX_WORDS Setting a string limit for word @50char (as per manual) - 
+  //  This limit is for the size of the file_name - 
+  //    This limit = approx. 128 byte size arguement for string. - 
+  int MAX_WORDS = 50; 
+  char *arguments[MAX_WORDS]; //the char * array to hold each argument. - 
+  char *s = file_name;        //set pointer to file_name arg - 
+  char *token, *save_ptr;     //ptrs sent in for tracking location in string, do not need initial values - 
+  int arg_count = 0;
+  int current_stack_pos = PHYS_BASE;
+
+  //------------------------------------------
+  for (token = strtok_r(s, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr));
+  {
+    printf("argument: '%s'\n", token);
+    arguments[arg_count] = token; //set ptr at index arg_count to token, a char * returned from strtok_r() - 
+    ++arg_count;
+  }//-------------end for---------------------
+
+  //------------------------------------------
+  // We need to put each argument on the stack in reverse order. - 
+  for (int i=arg_count - 1; i>0; --i)
+  {
+    int len = strlen(arguments[i]);
+    strlcpy(current_stack_pos, arguments[i], len);
+    current_stack_pos -= len;
+  }//-------------end for---------------------
+
+  // NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
+  // Establish the NULL pointer sentinel
+  // memset() is used to fill a block of memory with a particular value
+  //      ptr ==> starting address of memory to be filled
+  //      x   ==> value to be filled
+  //      n   ==> number of bytes to be filled, starting from ptr to be filled
+  // void *memset(void *ptr, int x, size_t n);
+  //  Note: that the ptr is a void pointer, so that we can pass any type of ptr to this function.
+  /*
+  //========================
+  //========================
+  //========================
+      // C example of memset
+      #include <studio.h>
+      #include <string.h>
+
+      int main()
+      {
+        char str[50] = "GeeksForGeeks is for programming geeks.";
+        printf("\nBefore memset(): %s\n", str);
+
+        //Fill 8 characters starting from str[13] with '.'
+        memset(str + 13, '.', 8*sizeof(char));
+
+        printf("After memset(): %s", str);
+        return 0;
+      }
+
+      //Before memset(): GeeksForGeeks is for programming geeks.
+      //After memset(): GeeksForGeeks........programming geeks.
+      //========================
+      Explanation - (str + 13) points to first space (0 based index) of the string - 
+      "GeeksForGeeks is for programming geeks.", and memset() sets the character '.' starting from first
+      ' ' of the string up to 8 character positiion of the given string and hence we get the output.
+      //========================
+  */
+  memset(current_stack_pos, 0, 4);
+  current_stack_pos -= 4;
+
+  hex_dump(current_stack_pos, current_stack_pos, 25, true);
+  //----------------------------------------------
+  //----------------------------------------------
+  //----------------------------------------------
+  //----------------------------------------------
+  //----------------------------------------------
+  //=================process.c - changes 1 end================
+  //==========================================
+  //Original1===========start=================
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-  //Original============end================
+  //Original1============end================
 
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
@@ -443,6 +520,7 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
+        //*esp = PHYS_BASE      //ORIGINAL 
         *esp = PHYS_BASE - 12; //changed w/-12 on 3/14/18
       else
         palloc_free_page (kpage);
