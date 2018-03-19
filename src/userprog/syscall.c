@@ -22,7 +22,7 @@ static void
 //syscall_handler (struct intr_frame *f UNUSED)
 syscall_handler (struct intr_frame *f) 
 {
-  printf ("\n\nsystem call! from /home/pintos/pintos/src/userprog/syscall.c\n");
+  //printf ("\n\nsystem call! from /home/pintos/pintos/src/userprog/syscall.c\n");
   
   int *sys_call_number = (int *) f->esp;
   //printf("System call number is: %d\n", *sys_call_number);
@@ -71,7 +71,7 @@ syscall_handler (struct intr_frame *f)
       char* thr_name = thread_name();
       int *exit_code = (int*) (f->esp + 4);
       int retval = *exit_code;
-      printf("%s: exit(%d)\n",thr_name,*exit_code);
+      printf("%s: exit(%d)\n", thr_name, *exit_code);
       f->eax = retval;
       sema_up(&thread_current()->wait_sema);
       thread_exit();
@@ -141,9 +141,10 @@ syscall_handler (struct intr_frame *f)
     case SYS_WAIT:
     {//----------------------
       pid_t wait_pid = *((pid_t*) (f->esp + 4));
-      printf("Waiting for thread: %d\n",wait_pid);
+      printf("Waiting for thread: %d\n", wait_pid);
       process_wait(wait_pid);
-      break;    }
+      break;
+    }
     //----------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -267,7 +268,8 @@ syscall_handler (struct intr_frame *f)
       unsigned size = *((unsigned*) (f->esp + 12));
       // printf("Write Call!\n");
       int retval = 0;
-      if (*fd == 1){
+      if (*fd == 1)
+      {
         //printf("Write to Console:\n");
         putbuf(buffer,size);
         retval = size;
