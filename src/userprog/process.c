@@ -17,6 +17,8 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+//-------------------------
+#include "threads/malloc.h"
 
 
 
@@ -46,7 +48,9 @@ process_execute (const char *file_name)
   //MAX_WORDS Setting a string limit for word @50char (as per manual) - 
   //  This limit is for the size of the file_name - 
   //    This limit = approx. 128 byte size arguement for string. - 
-  
+
+
+  /*
   int MAX_WORDS = 50; 
   char *arguments[MAX_WORDS]; //the char * array to hold each argument. - 
   char *s = file_name;        //set pointer to file_name arg - 
@@ -55,12 +59,23 @@ process_execute (const char *file_name)
   //int current_stack_pos = PHYS_BASE;
 
   //------------------------------------------
+  strtok_r explanation:
+    strtok_r() for splitting a string with some delimiter. Splitting a string is a common task
+    For example, we have a comma separated list of items from a file and we want individual
+      items in an array.
+    strtok_r does the same task of parsing as strtok, but is a reentrant version.
+        reentrant version = a function is said to be reentrant if there is a provision to interrupt
+          the function in the course of execution, service the interrupt service routine adn then 
+          resume the earlier going on function, without hampering its earlier course of action.
+  //-------------------------------------------
   for (token = strtok_r(s, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr));
   {
     printf("argument: '%s'\n", token);
     arguments[arg_count] = token; //set ptr at index arg_count to token, a char * returned from strtok_r() - 
     ++arg_count;
   }//-------------end for---------------------
+  */
+
 
   /*
   //------------------------------------------
@@ -126,23 +141,34 @@ process_execute (const char *file_name)
   //=================process.c - changes 1 end================
   //==========================================
 
-  fn_copy = palloc_get_page (0);
+  fn_copy = palloc_get_page(0);
   if (fn_copy == NULL)
     return TID_ERROR;
   //strlcpy (fn_copy, file_name, PGSIZE);
-  strlcpy (fn_copy, arguments[0], PGSIZE);
+  //strlcpy (fn_copy, arguments[0], PGSIZE);
 
 
-  /* Create a new thread to execute FILE_NAME. */
-  //tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  tid = thread_create (arguments[0], PRI_DEFAULT, start_process, fn_copy);
+  //Parse the first part of the name here. We need it for the thread's name
+  strlcpy(first_arg, file_name, strlen(file_name)+1);
+  strtok_r(first_arg, " ", &dummy_arg);
+
+
+  //Copy the complete command line args into fn_copy. We can pass this
+  //    to the child thread for parsing.
+  strlcpy(fn_copy, file_name, PGSIZE);
+
+
+  // create a new thread to execute file_name
+  //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create(first_arg, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
-  return tid;
+  {
+    palloc_free_page(fn_copy);
+    return tid;
 }
 
-/* A thread function that loads a user process and starts it
-   running. */
+
+/* A thread function that loads a user process and starts it running. */
 static void
 start_process (void *file_name_)
 {
@@ -184,7 +210,10 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  while (true) {} //added 3/14/18
+  while (true)
+  {
+
+  } //added 3/14/18
   return -1;
 }
 
@@ -292,7 +321,8 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+//static bool setup_stack (void **esp);
+static bool setup_stack (void **esp, char* in_args);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -312,19 +342,38 @@ load (const char *file_name, void (**eip) (void), void **esp)
   bool success = false;
   int i;
 
+
+  //-----------------------------------------------------------
+  //----------------------------
+  //----------------------------
+  // New char* for first arg in file_name (the executable name)
+  char *exec_name = malloc(strlen(file_name) + 1);
+  char *dummy_arg;
+  strlcpy(exec_name, file_name, strlen(file_name) + 1);
+  //Get the first argument of name
+  strtok_r(exec_name, " ", &dummy_arg);
+  //----------------------------
+  //----------------------------
+  //-----------------------------------------------------------
+
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
 
+
   /* Open executable file. */
-  file = filesys_open (file_name);
+  //file = filesys_open (file_name);
+  file = filesys_open (exec_name);
   if (file == NULL) 
     {
-      printf ("load: %s: open failed\n", file_name);
+      //printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", exec_name);
       goto done; 
     }
+
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -335,7 +384,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
       || ehdr.e_phnum > 1024) 
     {
-      printf ("load: %s: error loading executable\n", file_name);
+      //printf ("load: %s: error loading executable\n", file_name);
+      printf ("load: %s: error loading executable\n", exec_name);
       goto done; 
     }
 
@@ -398,9 +448,18 @@ load (const char *file_name, void (**eip) (void), void **esp)
         }
     }
 
+  //=======================================
+  // Allocate a new string so we don't modify the original arument
+  char *args_ptr = malloc(strlen(file_name) + 1);
+  strlcpy(args_ptr, file_name, strlen(file_name) + 1);
+  //=======================================
+
+
   /* Set up stack. */
-  if (!setup_stack (esp))
+  //if (!setup_stack (esp))
+  if (!setup_stack (esp, args_ptr)) //==============
     goto done;
+
 
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
@@ -524,21 +583,92 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+//setup_stack (void **esp) 
+setup_stack(void **esp, char* in_args)
 {
   uint8_t *kpage;
   bool success = false;
+
+  int index = 0;
+  const int WORD_LIMIT = 50;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-      //=======PHYS_BASE - 12=====================================
-      //=======PHYS_BASE - 12=====================================
+      //if (success)
       //=======PHYS_BASE - 12=====================================
         //*esp = PHYS_BASE      //ORIGINAL 
-        *esp = PHYS_BASE - 12; //changed w/-12 on 3/14/18
+        //*esp = PHYS_BASE - 12; //changed w/-12 on 3/14/18
+      if (success){
+        // Parsing arguments:
+
+        char* current, *buffer;
+        char *current_arg[WORD_LIMIT];
+
+        for(current = strtok_r(in_args," ",&buffer); current != NULL; current = strtok_r(NULL," ",&buffer))
+        {
+          int size_of_curr = strlen(current)+1;
+          current_arg[index] = malloc(size_of_curr);
+          strlcpy(current_arg[index],current,size_of_curr);
+          ++index;
+        }
+
+        // Stack pointer is set here. Now we can copy over the arguments.
+        *esp = PHYS_BASE - 12;
+
+        // Loop to copy arugments.
+        char* char_ptrs[WORD_LIMIT];
+        for(int i = index-1; i >= 0; --i){
+          int size_of_curr = strlen(current_arg[i]) + 1;
+          // Decrement esp to size of arugment to be copied.
+          *esp -= size_of_curr;  
+          strlcpy(*esp, current_arg[i], size_of_curr);
+          char_ptrs[i] = (char*) *esp;
+        }
+        // At this point, all string parts of arguments are on the stack.
+        // We need to:
+        // 1. Word align the next address.
+        // 2. Push NULL pointer.
+        // 3. Push args in reverse order.
+        // 4. Push pointer to argv[0] (argv).
+        // 5. Push argc (count of args, currently in 'index')
+        // 6. Push 'fake' return address.
+
+        // 1. Word Align
+        //    If the current *esp address is not word aligned
+        //    (It's not word-aligned if the either of the lowest two bits are set)
+        if((int) *esp & 0x03){
+          // Clear the lowest two bits. 
+          // This gets us the 'closest' next word-aligned address.
+          *esp = (int) *esp & ~0x03;
+        }
+        
+        // 2. Push NULL pointer
+        *esp -= 4;
+        memset(*esp,0,4);
+        
+        // 3. Push args in reverse order.
+        for(int i = index-1; i >= 0; --i){
+          *esp -= 4;
+          memcpy(*esp,&char_ptrs[i],4);
+        }
+        
+        // 4. Push pointer to argv[0] (argv).
+        char** argv = *esp;
+        *esp -= 4;
+        memcpy(*esp,&argv,4);
+        
+        // 5. Push argc (count of args, currently in 'index').
+        *esp -= 4;
+        memcpy(*esp,&index,4);
+        
+        // 6. Push 'fake' return address.
+        *esp -= 4;
+        memset(*esp, 0, 4);
+
+        test_stack((int*) *esp);
+      }
       else
         palloc_free_page (kpage);
     }
@@ -564,3 +694,20 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+//===========================================
+
+void test_stack(int* t)
+{
+    int i;
+    int argc = t[1];
+    char ** argv;
+
+    argv = (char**) t[2];
+    printf("ARGC:%d ARGV:%x\n", argc, (unsigned int)argv);
+    for(int i = 0; i < argc; i++)
+    {
+        printf("argv[%d] = %x pointing at %s\n", i, (unsigned int)argv[i], argv[i]);
+    }
+}
+//===========================================
