@@ -20,8 +20,6 @@
 //-------------------------
 #include "threads/malloc.h"
 
-
-
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -337,7 +335,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, void (**eip) (void), void **esp) 
 {
-  struct thread *t = thread_current ();
+  struct thread *t = thread_current();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
   off_t file_ofs;
@@ -360,7 +358,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
 
   /* Allocate and activate page directory. */
-  t->pagedir = pagedir_create ();
+  t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
     goto done;
   process_activate();
@@ -586,7 +584,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
    user virtual memory. */
 static bool
 //setup_stack (void **esp) 
-setup_stack(void **esp, char* in_args)
+setup_stack(void **esp, char *in_args)
 {
   uint8_t *kpage;
   bool success = false;
@@ -602,10 +600,10 @@ setup_stack(void **esp, char* in_args)
       //=======PHYS_BASE - 12=====================================
         //*esp = PHYS_BASE      //ORIGINAL 
         //*esp = PHYS_BASE - 12; //changed w/-12 on 3/14/18
-      if (success){
+      if (success)
+      {
         // Parsing arguments:
-
-        char* current, *buffer;
+        char *current, *buffer;
         char *current_arg[WORD_LIMIT];
 
         for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
@@ -617,8 +615,9 @@ setup_stack(void **esp, char* in_args)
         }
 
         // Stack pointer is set here. Now we can copy over the arguments.
-        *esp = PHYS_BASE - 12;
-
+        //*esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
+         
         // Loop to copy arugments.
         char* char_ptrs[WORD_LIMIT];
         for(int i = index-1; i >= 0; --i){
@@ -648,22 +647,22 @@ setup_stack(void **esp, char* in_args)
         
         // 2. Push NULL pointer
         *esp -= 4;
-        memset(*esp,0,4);
+        memset(*esp, 0, 4);
         
         // 3. Push args in reverse order.
         for(int i = index-1; i >= 0; --i){
           *esp -= 4;
-          memcpy(*esp,&char_ptrs[i],4);
+          memcpy(*esp, &char_ptrs[i], 4);
         }
         
         // 4. Push pointer to argv[0] (argv).
         char** argv = *esp;
         *esp -= 4;
-        memcpy(*esp,&argv,4);
+        memcpy(*esp, &argv, 4);
         
         // 5. Push argc (count of args, currently in 'index').
         *esp -= 4;
-        memcpy(*esp,&index,4);
+        memcpy(*esp, &index, 4);
         
         // 6. Push 'fake' return address.
         *esp -= 4;
