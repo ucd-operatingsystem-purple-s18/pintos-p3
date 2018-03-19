@@ -3,10 +3,12 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+//---------3/18/18 start-----------------------
 #include "lib/kernel/console.h"
-#include "lib/user/syscall.h"
 #include "userprog/process.h"
 #include "devices/shutdown.h"
+#include "lib/user/syscall.h"
+//---------3/18/18 end-----------------------
 
 static void syscall_handler (struct intr_frame *);
 
@@ -21,9 +23,10 @@ static void
 syscall_handler (struct intr_frame *f) 
 {
   //printf ("\n\nsystem call! from /home/pintos/pintos/src/userprog/syscall.c\n");
+  
   int *sys_call_number = (int *) f->esp;
   //printf("System call number is: %d\n", *sys_call_number);
-  
+
   /*
   3.3.4 System Calls
     Implement the system call handler in ‘userprog/syscall.c’. The skeleton implementation
@@ -34,8 +37,9 @@ syscall_handler (struct intr_frame *f)
     are for use by user programs only.) System call numbers for each system call are defined in
     ‘lib/syscall-nr.h’:
   */
-  switch(*sys_call_number)
+  switch(*sys_call_number)//===================
   {
+    //------------
     /*
     void halt (void)
       [System Call] 
@@ -44,11 +48,12 @@ syscall_handler (struct intr_frame *f)
     because you lose some information about possible deadlock 
     situations, etc.
     */
-    case SYS_HALT: {
-      printf("Halt!\n");
+    case SYS_HALT:
+    {//----------------------
+      printf("SYS_HALT\n");
       shutdown_power_off();
       break;
-    }
+    }//----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -61,7 +66,8 @@ syscall_handler (struct intr_frame *f)
     parent waits for it (see below), this is the status that will be returned. Conventionally,
     a status of 0 indicates success and nonzero values indicate errors.
     */
-    case SYS_EXIT: {
+    case SYS_EXIT:
+    {//----------------------
       char* thr_name = thread_name();
       int *exit_code = (int*) (f->esp + 4);
       int retval = *exit_code;
@@ -71,6 +77,7 @@ syscall_handler (struct intr_frame *f)
       thread_exit();
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -86,9 +93,11 @@ syscall_handler (struct intr_frame *f)
     process successfully loaded its executable. You must use appropriate synchronization
     to ensure this.
     */
-    case SYS_EXEC: {
+    case SYS_EXEC:
+    {//----------------------
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -129,12 +138,14 @@ syscall_handler (struct intr_frame *f)
     and then implement the wait system call in terms of process_wait().
     Implementing this system call requires considerably more work than any of the rest.
     */
-    case SYS_WAIT: {
+    case SYS_WAIT:
+    {//----------------------
       pid_t wait_pid = *((pid_t*) (f->esp + 4));
-      printf("Waiting for thread: %d\n",wait_pid);
+      printf("Waiting for thread: %d\n", wait_pid);
       process_wait(wait_pid);
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -147,9 +158,11 @@ syscall_handler (struct intr_frame *f)
     cessful, false otherwise. Creating a new file does not open it: opening the new file is
     a separate operation which would require a open system call.
     */
-    case SYS_CREATE: {
+    case SYS_CREATE:
+    {//----------------------
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -162,9 +175,11 @@ syscall_handler (struct intr_frame *f)
     removed regardless of whether it is open or closed, and removing an open file does
     not close it. See [Removing an Open File], page 35, for details.
     */
-    case SYS_REMOVE: {
+    case SYS_REMOVE:
+    {//----------------------
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -188,9 +203,11 @@ syscall_handler (struct intr_frame *f)
     file are closed independently in separate calls to close and they do not share a file
     position.
     */
-    case SYS_OPEN: {
+    case SYS_OPEN:
+    {//----------------------
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -201,9 +218,11 @@ syscall_handler (struct intr_frame *f)
       [System Call]
     Returns the size, in bytes, of the file open as fd.
     */
-    case SYS_FILESIZE: {
+    case SYS_FILESIZE:
+    {//----------------------
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -216,9 +235,11 @@ syscall_handler (struct intr_frame *f)
     actually read (0 at end of file), or -1 if the file could not be read (due to a condition
     other than end of file). Fd 0 reads from the keyboard using input_getc().
     */
-    case SYS_READ: {
+    case SYS_READ:
+    {//----------------------
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -240,13 +261,15 @@ syscall_handler (struct intr_frame *f)
     by different processes may end up interleaved on the console, confusing both human
     readers and our grading scripts.
     */
-    case SYS_WRITE: {
+    case SYS_WRITE:
+    {//----------------------
       int* fd = (int*) (f->esp + 4);
       char* buffer = *((char**) (f->esp + 8));
       unsigned size = *((unsigned*) (f->esp + 12));
-     // printf("Write Call!\n");
+      // printf("Write Call!\n");
       int retval = 0;
-      if (*fd == 1){
+      if (*fd == 1)
+      {
         //printf("Write to Console:\n");
         putbuf(buffer,size);
         retval = size;
@@ -254,6 +277,7 @@ syscall_handler (struct intr_frame *f)
       f->eax = retval;
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -270,9 +294,11 @@ syscall_handler (struct intr_frame *f)
     writes past end of file will return an error.) These semantics are implemented in the
     file system and do not require any special effort in system call implementation.
     */
-    case SYS_SEEK: {
+    case SYS_SEEK:
+    {//----------------------
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -284,9 +310,11 @@ syscall_handler (struct intr_frame *f)
     Returns the position of the next byte to be read or written in open file fd, expressed
     in bytes from the beginning of the file.
     */
-    case SYS_TELL: {
+    case SYS_TELL:
+    {//----------------------
       break;
     }
+    //----------------------
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -298,7 +326,8 @@ syscall_handler (struct intr_frame *f)
     Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open
     file descriptors, as if by calling this function for each one.
     */
-    case SYS_CLOSE: {
+    case SYS_CLOSE:
+    {//----------------------
       break;
     }
     //----------------------------------------------
@@ -341,7 +370,8 @@ If a system call is passed an invalid argument, acceptable options include retur
 error value (for those calls that return a value), returning an undefined value, or terminating
 the process.
     */
-    default: {
+    default:
+    {//----------------------
       //Place the code for a bad system call number here.
       break;
     }
