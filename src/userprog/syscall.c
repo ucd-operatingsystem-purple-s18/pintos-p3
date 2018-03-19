@@ -254,17 +254,26 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_WRITE:
     {//----------------------
-    /*
-      int *fd = (int*) (f->esp - 4);
-      char *buffer = (char *) (f->esp - 8);
-      unsigned *size = (unsigned *) (f->esp - 12);
-      printf("\n\t case SYS_WRITE: {");
-      printf("\n\t int *fd = (int*) (f->esp - 4);");
-      printf("\n\t char *buffer = (char *) (f->esp - 8);");
-      printf("\n\t unsigned *size = (unsigned *) (f->esp - 12);");
-      printf("\n\t\tCurrent Values: fd: %d, buffer: %s, size: %d", *fd, buffer, *size);
-      */
+    
+      int *fd = (int*) (f->esp + 4);
+      char *buffer = *((char **) (f->esp + 8));
+      unsigned size = *((unsigned *) (f->esp + 12));
+      //printf("\n\t case SYS_WRITE: {");
+      //printf("\n\t int *fd = (int*) (f->esp - 4);");
+      //printf("\n\t char *buffer = (char *) (f->esp - 8);");
+      //printf("\n\t unsigned *size = (unsigned *) (f->esp - 12);");
+      //printf("\n\t\tCurrent Values: fd: %d, buffer: %s, size: %d", *fd, buffer, **size);
+      
       printf("Write Call\n");
+
+      int retval = 0;
+      if (*fd == 1)
+      {
+        printf("Write to Console:\n");
+        putbuf(buffer, size);
+        retval = size;
+      }
+      f->eax = retval;
       break;
     }
     //----------------------

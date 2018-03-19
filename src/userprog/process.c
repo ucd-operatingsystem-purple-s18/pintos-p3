@@ -18,6 +18,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -31,6 +33,8 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
+  char *first_arg = malloc(strlen(file_name)+1);
+  char *dummy_arg;
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   //----------------------------------------------
@@ -42,12 +46,13 @@ process_execute (const char *file_name)
   //MAX_WORDS Setting a string limit for word @50char (as per manual) - 
   //  This limit is for the size of the file_name - 
   //    This limit = approx. 128 byte size arguement for string. - 
+  
   int MAX_WORDS = 50; 
   char *arguments[MAX_WORDS]; //the char * array to hold each argument. - 
   char *s = file_name;        //set pointer to file_name arg - 
   char *token, *save_ptr;     //ptrs sent in for tracking location in string, do not need initial values - 
   int arg_count = 0;
-  int current_stack_pos = PHYS_BASE;
+  //int current_stack_pos = PHYS_BASE;
 
   //------------------------------------------
   for (token = strtok_r(s, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr));
@@ -57,6 +62,7 @@ process_execute (const char *file_name)
     ++arg_count;
   }//-------------end for---------------------
 
+  /*
   //------------------------------------------
   // We need to put each argument on the stack in reverse order. - 
   for (int i=arg_count - 1; i>0; --i)
@@ -65,6 +71,8 @@ process_execute (const char *file_name)
     strlcpy(current_stack_pos, arguments[i], len);
     current_stack_pos -= len;
   }//-------------end for---------------------
+  */
+
 
   // NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
   // Establish the NULL pointer sentinel
@@ -102,10 +110,14 @@ process_execute (const char *file_name)
       ' ' of the string up to 8 character positiion of the given string and hence we get the output.
       //========================
   */
+
+  /*
   memset(current_stack_pos, 0, 4);
   current_stack_pos -= 4;
 
   hex_dump(current_stack_pos, current_stack_pos, 25, true);
+
+  */
   //----------------------------------------------
   //----------------------------------------------
   //----------------------------------------------
@@ -113,15 +125,17 @@ process_execute (const char *file_name)
   //----------------------------------------------
   //=================process.c - changes 1 end================
   //==========================================
-  //Original1===========start=================
+
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
-  //Original1============end================
+  //strlcpy (fn_copy, file_name, PGSIZE);
+  strlcpy (fn_copy, arguments[0], PGSIZE);
+
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  //tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (arguments[0], PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -520,6 +534,9 @@ setup_stack (void **esp)
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
+      //=======PHYS_BASE - 12=====================================
+      //=======PHYS_BASE - 12=====================================
+      //=======PHYS_BASE - 12=====================================
         //*esp = PHYS_BASE      //ORIGINAL 
         *esp = PHYS_BASE - 12; //changed w/-12 on 3/14/18
       else
