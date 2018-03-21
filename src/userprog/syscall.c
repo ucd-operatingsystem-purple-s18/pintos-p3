@@ -94,6 +94,10 @@ syscall_handler (struct intr_frame *f)
     case SYS_EXEC: 
     {
       //printf("syscall.c ==> SYS_EXEC!\n");
+      //printf --> calls for printf in these cases are causing tests to fail???
+      char *buffer = *((char **) (f->esp + 4));
+      printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
+      f->eax = process_execute(buff);
 
       break;
     }
