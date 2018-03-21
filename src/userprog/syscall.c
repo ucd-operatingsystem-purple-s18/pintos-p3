@@ -98,6 +98,8 @@ syscall_handler (struct intr_frame *f)
       char *buffer = *((char **) (f->esp + 4));
       printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
       f->eax = process_execute(buffer);
+      
+      //Push from here --> work on SYS_WAIT
 
       break;
     }
