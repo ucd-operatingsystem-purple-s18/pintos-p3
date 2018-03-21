@@ -97,7 +97,7 @@ syscall_handler (struct intr_frame *f)
       //printf --> calls for printf in these cases are causing tests to fail???
       char *buffer = *((char **) (f->esp + 4));
       printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
-      f->eax = process_execute(buff);
+      f->eax = process_execute(buffer);
 
       break;
     }
