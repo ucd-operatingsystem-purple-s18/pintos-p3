@@ -33,6 +33,7 @@ process_execute (const char *file_name)
   tid_t tid;
   char *first_arg = malloc(strlen(file_name) + 1);
   char *dummy_arg;
+  struct thread *t = thread_current();
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   //----------------------------------------------
