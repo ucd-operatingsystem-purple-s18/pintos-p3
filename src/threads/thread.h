@@ -91,6 +91,14 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+    // -----------------------
+    //added in P2
+    int next_fd; //holds the next avilabel file descirptor integer
+    struct list children; //list to hold all the child processes of this process
+    struct list files; //list to hold all the open files fo this process
+    struct shared_data *parent_share; //pointer to hold the data shared with this process parent (should only be one)
+
+    //-----------------------
     struct list_elem allelem;           /* List element for all threads list. */
     //=================
     //struct semaphore wait_sema;
@@ -98,11 +106,11 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
     //===================
-    struct list children;
+    //struct list children;
     //struct list_elem child_list;
 
     //struct list children_vals;
-    struct shared_data *parent_share;
+    //struct shared_data *parent_share;
     //===================
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -112,6 +120,15 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
+
+/*
+    struct shared_data
+
+    Holds data that needs to be shared between each parent process and its children.
+    Each shared_data struct is initialized by the child process, but can be de-allocated
+    by either the parent of child, depending on which process exits first.
+*/
+
 
 //===================================
 struct shared_data
@@ -124,6 +141,19 @@ struct shared_data
   tid_t tid;
   struct semaphore dead_sema;
   struct list_elem child_elem;
+};
+/*
+    struct file_map
+
+    Holds a mapping between an integer "file descriptor" and the underlying 
+    struct file*. File descriptors are unique per process (not globally), and
+    are removed when the file is closed.
+*/
+struct file_map 
+{
+  int fd;                               /* Holds the file descriptor for this file. */
+  struct file *file;                    /* Holds the actual file* for this file. */
+  struct list_elem file_elem;           /* Allows the file to be an element in a list. */
 };
 //===================================
 /* If false (default), use round-robin scheduler.

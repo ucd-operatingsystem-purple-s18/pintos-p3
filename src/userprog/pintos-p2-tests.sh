@@ -30,96 +30,96 @@ main ()
         test-args-many
         test-args-dbl-space
 
-        # test-sc-bad-sp
-        # test-sc-bad-arg
-        # test-sc-boundary
-        # test-sc-boundary-2
-        # test-sc-boundary-3
+        test-sc-bad-sp
+		test-sc-bad-arg
+        test-sc-boundary
+        test-sc-boundary-2
+        test-sc-boundary-3
 
-        # test-halt
-        # test-exit
+        test-halt
+        test-exit
 
-        # test-create-normal
-        # test-create-empty
-        # test-create-null
-        # test-create-bad-ptr
-        # test-create-long
-        # test-create-exists
-        # test-create-bound
+        test-create-normal
+        test-create-empty
+        test-create-null
+        test-create-bad-ptr
+        test-create-long
+        test-create-exists
+        test-create-bound
 
-        # test-open-normal
-        # test-open-missing
-        # test-open-boundary
-        # test-open-empty
-        # test-open-null
-        # test-open-bad-ptr
-        # test-open-twice
+        test-open-normal
+        test-open-missing
+        test-open-boundary
+        test-open-empty
+        test-open-null
+        test-open-bad-ptr
+        test-open-twice
 
-        # test-close-normal
-        # test-close-twice
-        # test-close-stdin
-        # test-close-stdout
-        # test-close-bad-fd
+        test-close-normal
+        test-close-twice
+        test-close-stdin
+        test-close-stdout
+        test-close-bad-fd
 
-        # test-read-normal
-        # test-read-bad-ptr
-        # test-read-boundary
-        # test-read-zero
-        # test-read-stdout
-        # test-read-bad-fd
+        test-read-normal
+        test-read-bad-ptr
+        test-read-boundary
+        test-read-zero
+        test-read-stdout
+        test-read-bad-fd
 
-        # test-write-normal
-        # test-write-bad-ptr
-        # test-write-boundary
-        # test-write-zero
-        # test-write-stdin
-        # test-write-bad-fd
+        test-write-normal
+        test-write-bad-ptr
+        test-write-boundary
+        test-write-zero
+        test-write-stdin
+        test-write-bad-fd
 
-        # test-exec-once
-        # test-exec-arg
-        # test-exec-bound
-        # test-exec-bound-2
-        # test-exec-bound
-        # test-exec-multiple
-        # test-exec-missing
-        # test-exec-bad-ptr
+        test-exec-once
+        test-exec-arg
+        test-exec-bound
+        test-exec-bound-2
+        test-exec-bound
+        test-exec-multiple
+        test-exec-missing
+        test-exec-bad-ptr
 
-        # test-wait-simple
-        # test-wait-twice
-        # test-wait-killed
-        # test-wait-bad-pid
+        test-wait-simple
+        test-wait-twice
+        test-wait-killed
+        test-wait-bad-pid
 
-        # test-multi-recurse
-        # test-multi-child-fd
+        test-multi-recurse
+        test-multi-child-fd
 
-        # test-rox-simple
-        # test-rox-child
-        # test-rox-multichild
+        test-rox-simple
+        test-rox-child
+        test-rox-multichild
 
-        # test-bad-read
-        # test-bad-write
-        # test-bad-read2
-        # test-bad-write2
-        # test-bad-jump
-        # test-bad-jump2
+        test-bad-read
+        test-bad-write
+        test-bad-read2
+        test-bad-write2
+        test-bad-jump
+        test-bad-jump2
 
-        # test-multi-oom
+        #test-multi-oom
 
-        # test-lg-create
-        # test-lg-full
-        # test-lg-random
-        # test-lg-seq-block
-        # test-lg-seq-random
+        test-lg-create
+        test-lg-full
+        test-lg-random
+        test-lg-seq-block
+        test-lg-seq-random
 
-        # test-sm-create
-        # test-sm-full 
-        # test-sm-random
-        # test-sm-seq-block 
-        # test-sm-seq-random
+        test-sm-create
+        test-sm-full 
+        test-sm-random
+        test-sm-seq-block 
+        test-sm-seq-random
 
-        # test-syn-read 
-        # test-syn-remove 
-        # test-syn-write
+        test-syn-read 
+        test-syn-remove 
+        test-syn-write
 
         
         echo -e "\n   SCRIPT EXECUTION TERMINATED SUCCESSFULLY. \n"

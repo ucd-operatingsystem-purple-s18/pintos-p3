@@ -170,7 +170,7 @@ process_execute (const char *file_name)
   //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
   //s-----------------------------------------------------------
   //data->parent = thread_current();
-  sema_init(&data->load_sema, 0);
+  sema_init(&data->load_sema,0);
   //tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
   tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
   sema_down(&data->load_sema);
@@ -182,7 +182,7 @@ process_execute (const char *file_name)
     list_push_back(&t->children, &data->shared->child_elem);
   }
   //================================
-  else 
+  else
   {
     free(data->shared);
     return -1;
@@ -192,7 +192,7 @@ process_execute (const char *file_name)
   if (tid == TID_ERROR)
   {
     //palloc_free_page(fn_copy); 
-    palloc_free_page(data);
+    palloc_free_page (data); 
     //e-----------------------------------------------------------
   }
   return tid;
@@ -204,13 +204,12 @@ process_execute (const char *file_name)
 /* A thread function that loads a user process and starts it
    running. */
 static void
-//start_process (void *file_name_)
 start_process (void *in_data)
 {
   //char *file_name = file_name_;
   struct intr_frame if_;
   //bool success;
-  struct pass_in *data = (struct pass_in *) in_data;
+  struct pass_in *data = (struct pass_in*) in_data;
   //-----------------------------------------------------------
 
   //need to allocate the structure for the pass_in data, here???
@@ -218,7 +217,7 @@ start_process (void *in_data)
 
   //sema_init(&share->wait_sema, 0);
   //everything for the shared data needs to be allocated for
-  sema_init(&share->dead_sema, 0);
+  sema_init(&share->dead_sema,0);
   lock_init(&share->ref_lock);
   share->tid = thread_current()->tid;
   share->exit_code = -2;
@@ -243,7 +242,7 @@ start_process (void *in_data)
   //-----------------------------------------------------------
   //-----------------------------------------------------------
   //success = load (file_name, &if_.eip, &if_.esp); //was original
-  data->load_success = load(data->file_name, &if_.eip, &if_.eip);
+  data->load_success = load(data->file_name, &if_.eip, &if_.esp);
   //-----------------------------------------------------------
   //-----------------------------------------------------------
   //-----------------------------------------------------------
@@ -254,7 +253,7 @@ start_process (void *in_data)
   //if (!success)
   //palloc_free_page(data);
 
-  if(!data->load_success)
+  if(!data->load_success) 
     thread_exit();
     //-----------------------------------------------------------
 
@@ -288,15 +287,15 @@ process_wait (tid_t child_tid)
   //}
   struct thread *t = thread_current();
   struct list_elem *e;
-  for (e=list_begin(&t->children); e != list_end(&t->children); e=list_next(e))
+  for (e = list_begin (&t->children); e != list_end (&t->children); e = list_next (e))
   {
-    struct shared_data *share = list_entry(e, struct shared_data, child_elem);
-    if(share->tid == child_tid)
-    {
-      sema_down(&share->dead_sema);
-      list_remove(&share->child_elem);
-      return share->exit_code;
-    }
+      struct shared_data *share = list_entry (e, struct shared_data, child_elem);
+      if(share->tid == child_tid)
+      {
+        sema_down(&share->dead_sema);
+        list_remove(&share->child_elem);
+        return share->exit_code;
+      }
   }
   //sema_down(&rt_thread->wait_sema);
   return -1;
@@ -311,11 +310,13 @@ void process_exit (void)
   //================================================
   // If the child outlives the parent, the child must deallocate the
   // shared memory.
-  if(cur->parent_share->ref_count == 1){
+  if(cur->parent_share->ref_count == 1)
+  {
     free(cur->parent_share);
   }
   // Otherwise, decrement count and let parent deallocate.
-  else if (cur->parent_share->ref_count == 2){
+  else if (cur->parent_share->ref_count == 2)
+  {
     --cur->parent_share->ref_count;
     //list_remove(&cur->parent_share->child_elem);
   }
@@ -323,13 +324,16 @@ void process_exit (void)
 
   // Iterate through each child in the list. If the parent outlived the child, 
   // the parent should deallocate.
-  for(int i = 0; i < list_size(&cur->children); ++i){
+  for(int i = 0; i < list_size(&cur->children); ++i)
+  {
     struct list_elem *e = list_pop_front(&cur->children);
-    struct shared_data* data = list_entry(e,struct shared_data,child_elem);
-    if(data->ref_count == 1){
+    struct shared_data *data = list_entry(e, struct shared_data, child_elem);
+    if(data->ref_count == 1)
+    {
       free(data);
     }
-    else if (data->ref_count == 2){
+    else if (data->ref_count == 2)
+    {
       --data->ref_count;
       list_push_back(&cur->children,&data->child_elem);
     }
@@ -349,8 +353,8 @@ void process_exit (void)
          directory, or our active page directory will be one
          that's been freed (and cleared). */
       cur->pagedir = NULL;
-      pagedir_activate(NULL);
-      pagedir_destroy(pd);
+      pagedir_activate (NULL);
+      pagedir_destroy (pd);
     }
 }
 
@@ -360,7 +364,7 @@ void process_exit (void)
 void
 process_activate (void)
 {
-  struct thread *t = thread_current();
+  struct thread *t = thread_current ();
 
   /* Activate thread's page tables. */
   pagedir_activate (t->pagedir);
@@ -451,7 +455,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   struct file *file = NULL;
   off_t file_ofs;
   bool success = false;
-  int i;
 
   //-----------------------------------------------------------
   //----------------------------
@@ -498,6 +501,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   /* Read program headers. */
   file_ofs = ehdr.e_phoff;
+  int i;
   for (i = 0; i < ehdr.e_phnum; i++) 
     {
       struct Elf32_Phdr phdr;
@@ -627,6 +631,7 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
   return true;
 }
 
+
 /* Loads a segment starting at offset OFS in FILE at address
    UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
    memory are initialized, as follows:
@@ -704,13 +709,13 @@ setup_stack (void **esp, char* in_args)
       //=======PHYS_BASE - 12=====================================
       //*esp = PHYS_BASE      //ORIGINAL 
       //*esp = PHYS_BASE - 12; //changed w/-12 on 3/14/18
-      if (success){
-        
+      if (success)
+      {  
         // Parsing arguments:
         char *current, *buffer;
         char *current_arg[WORD_LIMIT];
 
-        for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL," ",&buffer))
+        for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
         {
           int size_of_curr = strlen(current) + 1;
           current_arg[index] = malloc(size_of_curr);
@@ -722,7 +727,7 @@ setup_stack (void **esp, char* in_args)
         *esp = PHYS_BASE;
 
         // Loop to copy arugments.
-        char* char_ptrs[WORD_LIMIT];
+        char *char_ptrs[WORD_LIMIT];
         for(int i = index-1; i >= 0; --i)
         {
           int size_of_curr = strlen(current_arg[i]) + 1;
@@ -745,6 +750,7 @@ setup_stack (void **esp, char* in_args)
         //    (It's not word-aligned if the either of the lowest two bits are set)
         if((int) *esp & 0x03)
         {
+
           // Clear the lowest two bits. 
           // This gets us the 'closest' next word-aligned address.
           *esp =  (void*) ((int) *esp & ~0x03);
@@ -762,19 +768,15 @@ setup_stack (void **esp, char* in_args)
           *esp -= 4;
           memcpy(*esp, &char_ptrs[i], 4);
         }
-        
-        
         // 4. Push pointer to argv[0] (argv).
         char **argv = *esp;
         *esp -= 4;
         memcpy(*esp, &argv, 4);
-        
-        
+
         // 5. Push argc (count of args, currently in 'index').
         *esp -= 4;
         memcpy(*esp, &index, 4);
-        
-        
+
         // 6. Push 'fake' return address.
         *esp -= 4;
         memset(*esp, 0, 4);
@@ -811,12 +813,11 @@ void test_stack(int* t)
 {
     int i;
     int argc = t[1];
-    char **argv;
+    char ** argv;
 
     argv = (char **) t[2];
     printf("ARGC:%d ARGV:%x\n", argc, (unsigned int)argv);
-    for(i = 0; i < argc; i++)
-    {
+    for(int i = 0; i < argc; i++){
         printf("argv[%d] = %x pointing at %s\n", i, (unsigned int)argv[i], argv[i]);
     }
 }//===========================================

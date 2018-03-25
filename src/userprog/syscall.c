@@ -10,6 +10,8 @@
 //-----------------------------
 #include "threads/vaddr.h"
 #include "userprog/pagedir.h"
+#include "filesys/file.h"
+#include "filesys/filesys.h"
 //-----------------------------
 
 static void syscall_handler (struct intr_frame *);
@@ -25,7 +27,7 @@ static void
 syscall_handler (struct intr_frame *f) 
 {
   //printf ("\n\nsystem call! from /home/pintos/pintos/src/userprog/syscall.c\n");
-  int *sys_call_number = (int *) f->esp;
+  int* sys_call_number = (int*) f->esp;
   //printf("System call number is: %d\n", *sys_call_number);
   validate(sys_call_number);
   
@@ -103,7 +105,7 @@ syscall_handler (struct intr_frame *f)
       //printf("syscall.c ==> SYS_EXEC!\n");
       //printf --> calls for printf in these cases are causing tests to fail???
       //char *buffer = *((char **) (f->esp + 4));
-      char** raw = (char**) (f->esp+4);//---------------------
+      char **raw = (char **) (f->esp+4);//---------------------
       validate(raw);//---------------------
       int i = 0;//---------------------
       do
@@ -163,10 +165,13 @@ syscall_handler (struct intr_frame *f)
     case SYS_WAIT: 
     {
       //printf("syscall.c ==> SYS_WAIT!\n");
-      pid_t wait_pid = *((pid_t *) (f->esp + 4));
+      //pid_t wait_pid = *((pid_t *) (f->esp + 4));
+      pid_t *wait_pid = ((pid_t *) (f->esp + 4));
+      validate(wait_pid);
       //printf("Waiting for thread: %d\n", wait_pid);
       //process_wait(wait_pid);
-      f->eax = process_wait(wait_pid);
+      //f->eax = process_wait(wait_pid);
+      f->eax = process_wait(*wait_pid);
       break;
     }
     //----------------------------------------------
@@ -231,9 +236,30 @@ syscall_handler (struct intr_frame *f)
     case SYS_OPEN: 
     {
       //printf("syscall.c ==> SYS_OPEN!\n");
-
-      break;
-    }
+      char **raw = (char**) (f->esp+4);
+      validate(raw);
+      int i = 0;
+      do
+      {
+        validate(*raw + i);
+        i+=4;
+      }while(*raw[i-4] != '\0');
+      struct thread *t = thread_current();
+      int retval;
+      struct file *op = filesys_open(*raw);
+      struct file_map fm;
+      if(op == NULL)
+      {
+        retval = -1;
+      }else{
+        fm.fd = ++t->next_fd;
+        fm.file = op;
+        list_push_back(&t->files, &fm.file_elem);
+        retval = fm.fd;
+      }
+      f->eax = retval;
+      break; 
+      }
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------
@@ -292,15 +318,15 @@ syscall_handler (struct intr_frame *f)
     case SYS_WRITE: 
     {
       //printf("syscall.c ==> SYS_WRITE!\n");
-
       int *fd = (int *) (f->esp + 4);
       char *buffer = *((char **) (f->esp + 8));
       unsigned size = *((unsigned *) (f->esp + 12));
      // printf("Write Call!\n");
       int retval = 0;
-      if (*fd == 1){
+      if (*fd == 1)
+      {
         //printf("Write to Console:\n");
-        putbuf(buffer,size);
+        putbuf(buffer, size);
         retval = size;
       }
       f->eax = retval;
@@ -359,9 +385,23 @@ syscall_handler (struct intr_frame *f)
     case SYS_CLOSE: 
     {
       //printf("syscall.c ==> SYS_CLOSE!\n");
-
-      break;
-    }
+      int  *fd = (int *) (f->esp + 4);
+      validate(fd);
+      struct thread *t = thread_current();
+      if(*fd != 0 && *fd != 1){
+        struct list_elem *e;
+        for (e = list_begin (&t->files); e != list_end (&t->files);
+          e = list_next (e))
+          {
+            struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+            if(fmp->fd == *fd){
+              list_remove(e);
+              file_close(fmp->file);
+              break;
+            }
+          }
+      }
+      break;    }
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------

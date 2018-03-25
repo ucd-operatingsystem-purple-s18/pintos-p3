@@ -331,11 +331,9 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 //===================================
-struct thread *thread_at_tid(tid_t target_tid)
-{
+struct thread *thread_at_tid(tid_t target_tid){
     struct list_elem *e;
-    for (e = list_begin (&all_list); e != list_end (&all_list);
-       e = list_next (e))
+    for (e = list_begin (&all_list); e != list_end(&all_list); e = list_next(e))
     {
       struct thread *t = list_entry (e, struct thread, allelem);
       if(t->tid == target_tid){
@@ -481,11 +479,16 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  //------------------
+  t->next_fd = 2;
+  //------------------
 
 
   //=================================
   // Initialize list of children for the thread.
   list_init(&t->children);
+  //initialize list of files fo the process
+  list_init(&t->files);
   // Initialize semaphore for this thread.
   //sema_init(&t->wait_sema, 0);
   //=================================
