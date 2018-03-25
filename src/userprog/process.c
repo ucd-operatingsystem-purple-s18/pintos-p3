@@ -142,7 +142,7 @@ process_execute (const char *file_name)
   //s-----------------------------------------------------------
   //fn_copy = palloc_get_page (0);
   //struct pass_in *data = palloc_get_page(0);
-  struct pass_in *data = malloc(sizeof(struct pass_in);)
+  struct pass_in *data = malloc(sizeof(struct pass_in));
   //if (fn_copy == NULL)
   if (data == NULL)
   {
