@@ -149,6 +149,7 @@ syscall_handler (struct intr_frame *f)
       pid_t wait_pid = *((pid_t *) (f->esp + 4));
       //printf("Waiting for thread: %d\n", wait_pid);
       process_wait(wait_pid);
+      f->eax = process_wait(wait_pid);
       break;
     }
     //----------------------------------------------

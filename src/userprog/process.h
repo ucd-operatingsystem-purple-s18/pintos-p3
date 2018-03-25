@@ -28,9 +28,10 @@ struct pass_in //----------------------------------
     //void *shared;//----------------------------------
     //changing from char* to struct*//----------------------------------
     //struct shared_data *shared;//----------------------------------
-    struct thread *parent;
+    //struct thread *parent;
     struct semaphore load_sema;
-    struct shared_data **shared;
+    //struct shared_data **shared;
+    struct shared_data *shared;
 };//----------------------------------
 
 #endif /* userprog/process.h */

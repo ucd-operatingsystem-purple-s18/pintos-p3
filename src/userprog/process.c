@@ -140,7 +140,8 @@ process_execute (const char *file_name)
   //-----------------------------------------------------------
   //s-----------------------------------------------------------
   //fn_copy = palloc_get_page (0);
-  struct pass_in *data = palloc_get_page(0);
+  //struct pass_in *data = palloc_get_page(0);
+  struct pass_in *data = malloc(sizeof(struct pass_in);)
   //if (fn_copy == NULL)
   if (data == NULL)
   {
@@ -167,11 +168,19 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
   //s-----------------------------------------------------------
-  data->parent = thread_current();
+  //data->parent = thread_current();
   sema_init(&data->load_sema, 0);
   //tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
   tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
   sema_down(&data->load_sema);
+  //Check if the return value is true
+  if(data->load_success)
+  {
+    //if loaded successfully, we know that the child allocated the data
+    //  so our pointer is valid
+    list_push_back(&t->children, &data->shared->child_elem);
+  }
+
   if (tid == TID_ERROR)
   {
     //palloc_free_page(fn_copy); 
@@ -209,9 +218,10 @@ start_process (void *in_data)
   share->ref_count = 2;
   //thread_current()->parent_share = share;
 
-  //Now we need to add the structure to the parent thread's list
-  list_push_front(&data->parent->children, &share->child_elem);
+  data->shared = share;
 
+  //Now we need to add the structure to the parent thread's list
+  //list_push_front(&data->parent->children, &share->child_elem);
   //current thread
   thread_current()->parent_share = share;
   //-----------------------------------------------------------
@@ -234,7 +244,8 @@ start_process (void *in_data)
   //-----------------------------------------------------------
   //palloc_free_page(file_name);
   //if (!success)
-  palloc_free_page(data);
+  //palloc_free_page(data);
+
   if(!data->load_success)
     thread_exit();
     //-----------------------------------------------------------
@@ -275,6 +286,7 @@ process_wait (tid_t child_tid)
     if(share->tid == child_tid)
     {
       sema_down(&share->dead_sema);
+      list_remove(&share->child_elem);
       return share->exit_code;
     }
   }
