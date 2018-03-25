@@ -780,7 +780,7 @@ void test_stack(int* t)
 
     argv = (char **) t[2];
     printf("ARGC:%d ARGV:%x\n", argc, (unsigned int)argv);
-    for(int i = 0; i < argc; i++)
+    for(i = 0; i < argc; i++)
     {
         printf("argv[%d] = %x pointing at %s\n", i, (unsigned int)argv[i], argv[i]);
     }
