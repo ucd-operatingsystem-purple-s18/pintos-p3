@@ -16,11 +16,14 @@ void process_activate (void);
 //working on input argument ot start_process()
 //setting so that it is now a struct pass_in *
 //      instead of char *
-struct pass_in 
-{
-    bool load_success;
-    char *file_name;
-    void *shared;
-};
+//----------------------------------
+struct pass_in //----------------------------------
+{//----------------------------------
+    bool load_success;//----------------------------------
+    char *file_name;//----------------------------------
+    //void *shared;//----------------------------------
+    //changing from char* to struct*//----------------------------------
+    struct shared_data *shared;//----------------------------------
+};//----------------------------------
 
 #endif /* userprog/process.h */

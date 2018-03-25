@@ -66,13 +66,14 @@ syscall_handler (struct intr_frame *f)
     case SYS_EXIT: 
     {
       //printf("syscall.c ==> SYS_EXIT!\n");
-      char *thr_name = thread_name();
+      //char *thr_name = thread_name();
       int *exit_code = (int *) (f->esp + 4);
       int retval = *exit_code;
-      printf("%s: exit(%d)\n", thr_name, *exit_code);
+      //printf("%s: exit(%d)\n", thr_name, *exit_code);
       f->eax = retval;
-      sema_up(&thread_current()->wait_sema);
-      thread_exit();
+      //sema_up(&thread_current()->wait_sema);
+      //thread_exit();
+      exit(retval);
       
       break;
     }
@@ -400,3 +401,17 @@ the process.
   
   //thread_exit ();
 }
+//----------------------------------------------
+//----------------------------------------------
+void exit(int exit_code)
+{
+  struct thread *t = thread_current();
+  t->parent_share->exit_code = exit_code;
+  t->parent_share->reference_count -= 1;
+  char *thr_name = thread_name();
+  printf("%s: exit(%d)\n", thr_name, exit_code);
+  sema_up(&thread_current()->wait_sema);
+  thread_exit();
+}
+//----------------------------------------------
+//----------------------------------------------

@@ -192,6 +192,13 @@ start_process (void *in_data)
   //bool success;
   struct pass_in *data = (struct pass_in *) in_data;
   //-----------------------------------------------------------
+
+  //need to allocate the structure for the pass_in data, here???
+  struct shared_data *share = malloc(sizeof(struct shared_data));
+  sema_init(&share->wait_sema, 0);
+  share->exit_code = -2;
+  share->reference_count = 2;
+  thread_current()->parent_share = share;
   //-----------------------------------------------------------
 
   /* Initialize interrupt frame and load executable. */
@@ -208,7 +215,7 @@ start_process (void *in_data)
   //-----------------------------------------------------------
   //-----------------------------------------------------------
 
-  /* If load failed, quit. */
+  // If load failed, quit. 
   //-----------------------------------------------------------
   //palloc_free_page(file_name);
   //if (!success)
@@ -492,6 +499,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
+  //file_deny_write(file);
   file_close(file);
   return success;
 }

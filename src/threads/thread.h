@@ -100,6 +100,9 @@ struct thread
     //===================
     struct list children;
     struct list_elem child_list;
+
+    struct list children_vals;
+    struct shared_data *parent_share;
     //===================
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -110,6 +113,14 @@ struct thread
     unsigned magic;                     /* Detects stack overflow. */
   };
 
+//===================================
+struct shared_data
+{
+  int exit_code;
+  int reference_count;
+  struct semaphore wait_sema;
+};
+//===================================
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
