@@ -97,9 +97,9 @@ syscall_handler (struct intr_frame *f)
       //printf("syscall.c ==> SYS_EXEC!\n");
       //printf --> calls for printf in these cases are causing tests to fail???
       char *buffer = *((char **) (f->esp + 4));
-      printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
+      //printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
       f->eax = process_execute(buffer);
-      printf("after execution.\n");
+      //printf("after execution.\n");
 
       break;
     }
@@ -147,7 +147,7 @@ syscall_handler (struct intr_frame *f)
     {
       //printf("syscall.c ==> SYS_WAIT!\n");
       pid_t wait_pid = *((pid_t *) (f->esp + 4));
-      printf("Waiting for thread: %d\n", wait_pid);
+      //printf("Waiting for thread: %d\n", wait_pid);
       process_wait(wait_pid);
       break;
     }
@@ -410,7 +410,8 @@ void exit(int exit_code)
   t->parent_share->ref_count -= 1;
   char *thr_name = thread_name();
   printf("%s: exit(%d)\n", thr_name, exit_code);
-  sema_up(&thread_current()->wait_sema);
+  //sema_up(&thread_current()->wait_sema);
+  sema_up(&thread_current()->parent_share->dead_sema);
   thread_exit();
 }
 //----------------------------------------------

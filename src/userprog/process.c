@@ -168,8 +168,10 @@ process_execute (const char *file_name)
   //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
   //s-----------------------------------------------------------
   data->parent = thread_current();
+  sema_init(&data->load_sema, 0);
   //tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
   tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
+  sema_down(&data->load_sema);
   if (tid == TID_ERROR)
   {
     //palloc_free_page(fn_copy); 
@@ -227,7 +229,7 @@ start_process (void *in_data)
   //-----------------------------------------------------------
   //-----------------------------------------------------------
   //-----------------------------------------------------------
-
+  sema_up(&data->load_sema);
   // If load failed, quit. 
   //-----------------------------------------------------------
   //palloc_free_page(file_name);
@@ -259,13 +261,24 @@ start_process (void *in_data)
 int
 process_wait (tid_t child_tid) 
 {
-  struct thread *rt_thread;
-  rt_thread = thread_at_tid(child_tid);
-  if(rt_thread->tid == -1)
+  //struct thread *rt_thread;
+  //rt_thread = thread_at_tid(child_tid);
+  //if(rt_thread->tid == -1)
+  //{
+  //  return -1;
+  //}
+  struct thread *t = thread_current();
+  struct list_elem *e;
+  for (e=list_begin(&t->children); e != list_end(&t->children); e=list_next(e))
   {
-    return -1;
+    struct shared_data *share = list_entry(e, struct shared_data, child_elem);
+    if(share->tid == child_tid)
+    {
+      sema_down(&share->dead_sema);
+      return share->exit_code;
+    }
   }
-  sema_down(&rt_thread->wait_sema);
+  //sema_down(&rt_thread->wait_sema);
   return -1;
 }
 
