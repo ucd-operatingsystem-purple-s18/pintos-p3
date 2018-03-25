@@ -7,6 +7,10 @@
 #include "lib/user/syscall.h"
 #include "userprog/process.h"
 #include "devices/shutdown.h"
+//-----------------------------
+#include "threads/vaddr.h"
+#include "userprog/pagedir.h"
+//-----------------------------
 
 static void syscall_handler (struct intr_frame *);
 
@@ -46,7 +50,7 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_HALT: 
     {
-      printf("syscall.c ==> SYS_HALT!\n");
+      //printf("syscall.c ==> SYS_HALT!\n");
 
       shutdown_power_off();
       break;
@@ -414,6 +418,14 @@ void exit(int exit_code)
   //sema_up(&thread_current()->wait_sema);
   sema_up(&thread_current()->parent_share->dead_sema);
   thread_exit();
+}
+
+void validate(void *addr)
+{
+  if(addr == NULL || !is_user_vaddr(addr) || pagedir_get_page(thread_current()->pagedir, addr) == NULL)
+  {
+    exit(-1);
+  }
 }
 //----------------------------------------------
 //----------------------------------------------
