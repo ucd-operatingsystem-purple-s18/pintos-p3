@@ -29,7 +29,7 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  char *fn_copy;
+  //char *fn_copy;
   tid_t tid;
   char *first_arg = malloc(strlen(file_name) + 1);
   char *dummy_arg;
@@ -136,9 +136,18 @@ process_execute (const char *file_name)
   //----------------------------------------------
   //=================process.c - changes 1 end================
   //==========================================
-  fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
+
+  //-----------------------------------------------------------
+  //s-----------------------------------------------------------
+  //fn_copy = palloc_get_page (0);
+  struct pass_in *data = palloc_get_page(0);
+  //if (fn_copy == NULL)
+  if (data == NULL)
+  {
     return TID_ERROR;
+  }//-----------------------------------------------------------
+  //-----------------------------------------------------------
+  
   //strlcpy (fn_copy, file_name, PGSIZE);
   //strlcpy (fn_copy, arguments[0], PGSIZE);
 
@@ -148,37 +157,65 @@ process_execute (const char *file_name)
   strtok_r(first_arg, " ", &dummy_arg);
 
   // Copy the complete command line args into fn_copy. We'll pass this
-  // to the child thread for parsing.
-  strlcpy (fn_copy, file_name, PGSIZE);
+  //        to the child thread for parsing.
+  //s-----------------------------------------------------------
+  //strlcpy (fn_copy, file_name, PGSIZE);
+  data->file_name = malloc(strlen(file_name) + 1);
+  strlcpy(data->file_name, file_name, strlen(file_name) + 1);
+  //e-----------------------------------------------------------
 
   /* Create a new thread to execute FILE_NAME. */
   //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
-  tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
+  //s-----------------------------------------------------------
+  //tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
+  tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
   if (tid == TID_ERROR)
-    palloc_free_page(fn_copy); 
+  {
+    //palloc_free_page(fn_copy); 
+    palloc_free_page(data);
+    //e-----------------------------------------------------------
+  }
   return tid;
 }
 
+//-----------------------------------------------------------
+//-----------------------------------------------------------
+// Altering from our initial *char to *struct that was initiated above
 /* A thread function that loads a user process and starts it
    running. */
 static void
-start_process (void *file_name_)
+//start_process (void *file_name_)
+start_process (void *in_data)
 {
-  char *file_name = file_name_;
+  //char *file_name = file_name_;
   struct intr_frame if_;
-  bool success;
+  //bool success;
+  struct pass_in *data = (struct pass_in *) in_data;
+  //-----------------------------------------------------------
+  //-----------------------------------------------------------
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  //-----------------------------------------------------------
+  //-----------------------------------------------------------
+  //-----------------------------------------------------------
+  //success = load (file_name, &if_.eip, &if_.esp); //was original
+  data->load_success = load(data->file_name, &if_.eip, &if_.eip);
+  //-----------------------------------------------------------
+  //-----------------------------------------------------------
+  //-----------------------------------------------------------
 
   /* If load failed, quit. */
-  palloc_free_page(file_name);
-  if (!success) 
-    thread_exit ();
+  //-----------------------------------------------------------
+  //palloc_free_page(file_name);
+  //if (!success)
+  palloc_free_page(data);
+  if(!data->load_success)
+    thread_exit();
+    //-----------------------------------------------------------
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
