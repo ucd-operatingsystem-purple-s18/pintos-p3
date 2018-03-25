@@ -72,6 +72,7 @@ syscall_handler (struct intr_frame *f)
       //printf("syscall.c ==> SYS_EXIT!\n");
       //char *thr_name = thread_name();
       int *exit_code = (int *) (f->esp + 4);
+      validate(exit_code);
       int retval = *exit_code;
       //printf("%s: exit(%d)\n", thr_name, *exit_code);
       f->eax = retval;
@@ -102,6 +103,7 @@ syscall_handler (struct intr_frame *f)
       //printf --> calls for printf in these cases are causing tests to fail???
       char *buffer = *((char **) (f->esp + 4));
       //printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
+      validate(buffer);
       f->eax = process_execute(buffer);
       //printf("after execution.\n");
 
