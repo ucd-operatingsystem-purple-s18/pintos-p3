@@ -27,6 +27,7 @@ syscall_handler (struct intr_frame *f)
   //printf ("\n\nsystem call! from /home/pintos/pintos/src/userprog/syscall.c\n");
   int *sys_call_number = (int *) f->esp;
   //printf("System call number is: %d\n", *sys_call_number);
+  validate(sys_call_number);
   
   /*
   3.3.4 System Calls
@@ -101,10 +102,20 @@ syscall_handler (struct intr_frame *f)
     {
       //printf("syscall.c ==> SYS_EXEC!\n");
       //printf --> calls for printf in these cases are causing tests to fail???
-      char *buffer = *((char **) (f->esp + 4));
+      //char *buffer = *((char **) (f->esp + 4));
+      char** raw = (char**) (f->esp+4);//---------------------
+      validate(raw);//---------------------
+      int i = 0;//---------------------
+      do
+      {//---------------------
+        validate(*raw+i);//---------------------
+        i+=4;//---------------------
+      }while(*raw[i-4] != '\0');//---------------------
+      //---------------------
       //printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
-      validate(buffer);
-      f->eax = process_execute(buffer);
+      //validate(buffer);
+      //f->eax = process_execute(buffer);
+      f->eax = process_execute(*raw);
       //printf("after execution.\n");
 
       break;
@@ -424,10 +435,14 @@ void exit(int exit_code)
 
 void validate(void *addr)
 {
-  if(addr == NULL || !is_user_vaddr(addr) || pagedir_get_page(thread_current()->pagedir, addr) == NULL)
-  {
-    exit(-1);
-  }
+  // if(addr == NULL || !is_user_vaddr(addr) || pagedir_get_page(thread_current()->pagedir, addr) == NULL)
+  // {
+  //   exit(-1);
+  // }
+  for(int i = 0; i < 4; ++i){
+    if(addr+i == NULL || !is_user_vaddr(addr+i) || pagedir_get_page(thread_current()->pagedir,addr+i) == NULL){
+      exit(-1);
+    }
 }
 //----------------------------------------------
 //----------------------------------------------
