@@ -3,6 +3,10 @@
 
 #include "threads/thread.h"
 
+//----------------
+#include <list.h>
+//----------------
+
 tid_t process_execute (const char *file_name);
 int process_wait (tid_t);
 void process_exit (void);
@@ -23,7 +27,9 @@ struct pass_in //----------------------------------
     char *file_name;//----------------------------------
     //void *shared;//----------------------------------
     //changing from char* to struct*//----------------------------------
-    struct shared_data *shared;//----------------------------------
+    //struct shared_data *shared;//----------------------------------
+    struct thread *parent;
+    struct shared_data **shared;
 };//----------------------------------
 
 #endif /* userprog/process.h */

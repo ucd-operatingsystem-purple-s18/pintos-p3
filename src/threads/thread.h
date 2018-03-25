@@ -99,9 +99,9 @@ struct thread
     struct list_elem elem;              /* List element. */
     //===================
     struct list children;
-    struct list_elem child_list;
+    //struct list_elem child_list;
 
-    struct list children_vals;
+    //struct list children_vals;
     struct shared_data *parent_share;
     //===================
 #ifdef USERPROG
@@ -116,9 +116,14 @@ struct thread
 //===================================
 struct shared_data
 {
+  int ref_count;
+  struct lock ref_lock;
   int exit_code;
-  int reference_count;
-  struct semaphore wait_sema;
+  //int reference_count;
+  //struct semaphore wait_sema; 
+  tid_t tid;
+  struct semaphore dead_sema;
+  struct list_elem child_elem;
 };
 //===================================
 /* If false (default), use round-robin scheduler.

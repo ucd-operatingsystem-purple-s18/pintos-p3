@@ -167,6 +167,7 @@ process_execute (const char *file_name)
   /* Create a new thread to execute FILE_NAME. */
   //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
   //s-----------------------------------------------------------
+  data->parent = thread_current();
   //tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
   tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
   if (tid == TID_ERROR)
@@ -195,9 +196,21 @@ start_process (void *in_data)
 
   //need to allocate the structure for the pass_in data, here???
   struct shared_data *share = malloc(sizeof(struct shared_data));
-  sema_init(&share->wait_sema, 0);
+
+  //sema_init(&share->wait_sema, 0);
+  //everything for the shared data needs to be allocated for
+  sema_init(&share->dead_sema, 0);
+  lock_init(&share->ref_lock);
+  share->tid = thread_current()->tid;
   share->exit_code = -2;
-  share->reference_count = 2;
+  //share->reference_count = 2;
+  share->ref_count = 2;
+  //thread_current()->parent_share = share;
+
+  //Now we need to add the structure to the parent thread's list
+  list_push_front(&data->parent->children, &share->child_elem);
+
+  //current thread
   thread_current()->parent_share = share;
   //-----------------------------------------------------------
 

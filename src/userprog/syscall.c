@@ -99,8 +99,7 @@ syscall_handler (struct intr_frame *f)
       char *buffer = *((char **) (f->esp + 4));
       printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
       f->eax = process_execute(buffer);
-      
-      //Push from here --> work on SYS_WAIT
+      printf("after execution.\n");
 
       break;
     }
@@ -407,7 +406,8 @@ void exit(int exit_code)
 {
   struct thread *t = thread_current();
   t->parent_share->exit_code = exit_code;
-  t->parent_share->reference_count -= 1;
+  //t->parent_share->reference_count -= 1;
+  t->parent_share->ref_count -= 1;
   char *thr_name = thread_name();
   printf("%s: exit(%d)\n", thr_name, exit_code);
   sema_up(&thread_current()->wait_sema);
