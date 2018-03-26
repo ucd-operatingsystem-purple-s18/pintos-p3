@@ -131,18 +131,11 @@ process_execute (const char *file_name)
       //========================
   */
 
-  /*
-  memset(current_stack_pos, 0, 4);
-  current_stack_pos -= 4;
-
-  hex_dump(current_stack_pos, current_stack_pos, 25, true);
-
-  */
+  //-------------------------------------------
   //----------------------------------------------
   //----------------------------------------------
   //----------------------------------------------
-  //----------------------------------------------
-  //----------------------------------------------
+  //------/----------------------------------------
   //=================process.c - changes 1 end================
   //==========================================
 
@@ -736,7 +729,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
   strlcpy(args_ptr, file_name, strlen(file_name) + 1);
   //=======================================
 
-  /* Set up stack. */
+  /* Set up stack. 
+  Remember we are sending in our pointer to our stack and
+      the pointer to the allocated space, with our copied args
+  */
   //=======================================
   if (!setup_stack (esp, args_ptr))
   //=======================================
@@ -944,17 +940,19 @@ static bool
 //setup_stack (void **esp) 
 setup_stack (void **esp, char *in_args) 
 {
-  uint8_t *kpage;
-  bool success = false;
-  int index = 0;
-  const int WORD_LIMIT = 50;
   /*
     Can't let our stack get too big.
       Can't let it overflow, or else we will not have room on kernel stack
       The struct thread is only a few bytes
       But we cannot allocate large structures or arrays as non-static local variables.
       We have to use the malloc or the palloc_get_page
-
+  */
+  uint8_t *kpage;
+  bool success = false;
+  int index = 0;
+  const int WORD_LIMIT = 50; //our char pe/rlimit from the manual
+  
+  /*
       void *palloc_get_page(enum palloc_flags FLAGS)
           PAL_ZER0 - zero all the bytes in the allocated pages before returning them
                 if not set, the contents of new allocated pages are unpredictable

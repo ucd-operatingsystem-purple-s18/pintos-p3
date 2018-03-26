@@ -351,6 +351,7 @@ syscall_handler (struct intr_frame *f)
       //is this raw address available???
         validate_theStackAddress(*raw + i);
         i+=4;
+        //remember we have a byte address, that ends in a NULL
       }while(*raw[i-4] != '\0');
       struct thread *t = thread_current();
       int retval;
@@ -494,7 +495,7 @@ syscall_handler (struct intr_frame *f)
     {
       //printf("syscall.c ==> SYS_CLOSE!\n");
       int  *fd = (int *) (f->esp + 4);
-            //is this raw address available???
+      //is this raw address available???
       validate_theStackAddress(fd);
       struct thread *t = thread_current();
       if(*fd != 0 && *fd != 1){
