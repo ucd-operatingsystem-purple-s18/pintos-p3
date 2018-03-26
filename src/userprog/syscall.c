@@ -572,7 +572,8 @@ void exit(int exit_code)
   sema_up(&thread_current()->parent_share->dead_sema);
   thread_exit();
 }
-
+]
+// Checking to verify that the address we are sending in is valid.
 void validate(void *addr)
 {
   // if(addr == NULL || !is_user_vaddr(addr) || pagedir_get_page(thread_current()->pagedir, addr) == NULL)
@@ -582,7 +583,7 @@ void validate(void *addr)
   // Remember we are working with 4 bytes.
   for(int i = 0; i < 4; ++i)
   {
-    if(addr+i == NULL 
+    if(addr + i == NULL 
     || !is_user_vaddr(addr+i) 
     || pagedir_get_page(thread_current()->pagedir,addr+i) == NULL)
     {
