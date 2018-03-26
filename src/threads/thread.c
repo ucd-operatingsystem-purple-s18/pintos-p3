@@ -566,6 +566,12 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
+      /*
+      We are getting this error obviously here
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
       palloc_free_page (prev);
     }
 }

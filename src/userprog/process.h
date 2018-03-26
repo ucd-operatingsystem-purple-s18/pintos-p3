@@ -15,7 +15,6 @@ void process_activate (void);
 //==============================
 //Test stack function 
 // Brian gave us his testing script, don't need this at the moment.
-void test_stack(int *t);
 //==============================
 //working on input argument ot start_process()
 //setting so that it is now a struct pass_in *

@@ -195,6 +195,8 @@ process_execute (const char *file_name)
   */
   strlcpy(first_arg, file_name, strlen(file_name) + 1);
   /*
+  exp. strtok_r
+
           //We are splitting a string base on a space character
           char str[] = "Geeks for Geeks";
           char *token;
@@ -213,28 +215,61 @@ process_execute (const char *file_name)
   //        to the child thread for parsing.
   //s-----------------------------------------------------------
   //strlcpy (fn_copy, file_name, PGSIZE);
+  /*
+    data is pointing at our allocated struct space, with the internal file_name attribute
+        -> we are allocating space for that attribute as well
+        Then we are copying that original filename that was sent in via pointer
+            through the process_execute and while based on size + NULL
+  */
   data->file_name = malloc(strlen(file_name) + 1);
   strlcpy(data->file_name, file_name, strlen(file_name) + 1);
   //e-----------------------------------------------------------
 
-  /* Create a new thread to execute FILE_NAME. */
-  //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
+
   //s-----------------------------------------------------------
-  //data->parent = thread_current();
-  sema_init(&data->load_sema,0);
+  /*
+    I DONT COMPLETELY UNDERSTAND WHAT WE ARE DOING HERE WITH THE SEMAPHORE
+    //Sema_init si the Linux kernel's counting semaphore implementation initializing the function.
+
+    sema_init - Initializes semaphore SEMA to VALUE.  A semaphore is a
+   nonnegative integer along with two atomic operators for
+   manipulating it:
+
+   - down or "P": wait for the value to become positive, then
+     decrement it.
+
+   - up or "V": increment the value (and wake up one waiting
+     thread, if any). 
+void
+sema_init (struct semaphore *sema, unsigned value) 
+{
+  ASSERT (sema != NULL);
+
+  sema->value = value;
+  list_init (&sema->waiters);
+}
+  */
+  sema_init(&data->load_sema, 0);
+    /* Create a new thread to execute FILE_NAME. */
+  //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
   //tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
   tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
+
   sema_down(&data->load_sema);
   //Check if the return value is true
+  //  data = struct --> load_success is boolean attribute in struct
+  //      we are just verifying that we actually loaded the struct.
   if(data->load_success)
   {
     //if loaded successfully, we know that the child allocated the data
     //  so our pointer is valid
+    //  Here we are pushing back in order to save the old interrpt level
     list_push_back(&t->children, &data->shared->child_elem);
   }
   //================================
   else
   {
+    // we did not have thread success above, so we need to otherwise free the memory
     free(data->shared);
     return -1;
   }
@@ -242,10 +277,18 @@ process_execute (const char *file_name)
 
   if (tid == TID_ERROR)
   {
-    //palloc_free_page(fn_copy); 
+    //palloc_free_page(fn_copy);
+    /*
+      We are getting this error obviously here
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
     palloc_free_page (data); 
     //e-----------------------------------------------------------
   }
+  //We have made it here, we have allocated for, 
+  //    and established our thread. Send it back
   return tid;
 }
 
@@ -260,6 +303,7 @@ start_process (void *in_data)
   //char *file_name = file_name_;
   struct intr_frame if_;
   //bool success;
+  //create our local struct, based on our incoming reference
   struct pass_in *data = (struct pass_in*) in_data;
   //-----------------------------------------------------------
 
@@ -268,8 +312,36 @@ start_process (void *in_data)
 
   //sema_init(&share->wait_sema, 0);
   //everything for the shared data needs to be allocated for
-  sema_init(&share->dead_sema,0);
+  sema_init(&share->dead_sema, 0);
+  /*
+  /pintos/synch.c
+ Initializes LOCK.  A lock can be held by at most a single
+   thread at any given time.  Our locks are not "recursive", that
+   is, it is an error for the thread currently holding a lock to
+   try to acquire that lock.
+
+   A lock is a specialization of a semaphore with an initial
+   value of 1.  The difference between a lock and such a
+   semaphore is twofold.  First, a semaphore can have a value
+   greater than 1, but a lock can only be owned by a single
+   thread at a time.  Second, a semaphore does not have an owner,
+   meaning that one thread can "down" the semaphore and then
+   another one "up" it, but with a lock the same thread must both
+   acquire and release it.  When these restrictions prove
+   onerous, it's a good sign that a semaphore should be used,
+   instead of a lock. 
+void
+lock_init (struct lock *lock)
+{
+  ASSERT (lock != NULL);
+
+  lock->holder = NULL;
+  sema_init (&lock->semaphore, 1);
+}
+//lock_init - initializes the lock as a new lock. The lock is not initially owne by any thread
+  */
   lock_init(&share->ref_lock);
+  //Setting that struct share attribute as our current thread id
   share->tid = thread_current()->tid;
   share->exit_code = -2;
   //share->reference_count = 2;
@@ -284,6 +356,42 @@ start_process (void *in_data)
   thread_current()->parent_share = share;
   //-----------------------------------------------------------
 
+// NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
+  // Establish the NULL pointer sentinel
+  // memset() is used to fill a block of memory with a particular value
+  //      ptr ==> starting address of memory to be filled
+  //      x   ==> value to be filled
+  //      n   ==> number of bytes to be filled, starting from ptr to be filled
+  // void *memset(void *ptr, int x, size_t n);
+  //  Note: that the ptr is a void pointer, so that we can pass any type of ptr to this function.
+  /*
+  //========================
+  //========================
+  //========================
+      // C example of memset
+      #include <studio.h>
+      #include <string.h>
+
+      int main()
+      {
+        char str[50] = "GeeksForGeeks is for programming geeks.";
+        printf("\nBefore memset(): %s\n", str);
+
+        //Fill 8 characters starting from str[13] with '.'
+        memset(str + 13, '.', 8*sizeof(char));
+
+        printf("After memset(): %s", str);
+        return 0;
+      }
+
+      //Before memset(): GeeksForGeeks is for programming geeks.
+      //After memset(): GeeksForGeeks........programming geeks.
+      //========================
+      Explanation - (str + 13) points to first space (0 based index) of the string - 
+      "GeeksForGeeks is for programming geeks.", and memset() sets the character '.' starting from first
+      ' ' of the string up to 8 character positiion of the given string and hence we get the output.
+      //========================
+  */
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -515,12 +623,25 @@ load (const char *file_name, void (**eip) (void), void **esp)
   char *dummy_arg;
   strlcpy(exec_name, file_name, strlen(file_name) + 1);
   // Get first argument of name.
+    /*
+  exp. strtok_r
+  
+          //We are splitting a string base on a space character
+          char str[] = "Geeks for Geeks";
+          char *token;
+          char *rest = str;
+          while ((token = strtok_r(rest, " ", &rest)))
+            printf("%s\n", token)
+
+            -->result = 
+                Geeks
+                for
+                Geeks
+  */
   strtok_r(exec_name, " ", &dummy_arg);
   //----------------------------
   //----------------------------
   //-----------------------------------------------------------
-
-
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
@@ -722,14 +843,60 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Load this page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
+    /*
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
           palloc_free_page (kpage);
           return false; 
         }
+        // NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
+  // Establish the NULL pointer sentinel
+  // memset() is used to fill a block of memory with a particular value
+  //      ptr ==> starting address of memory to be filled
+  //      x   ==> value to be filled
+  //      n   ==> number of bytes to be filled, starting from ptr to be filled
+  // void *memset(void *ptr, int x, size_t n);
+  //  Note: that the ptr is a void pointer, so that we can pass any type of ptr to this function.
+  /*
+  //========================
+  //========================
+  //========================
+      // C example of memset
+      #include <studio.h>
+      #include <string.h>
+
+      int main()
+      {
+        char str[50] = "GeeksForGeeks is for programming geeks.";
+        printf("\nBefore memset(): %s\n", str);
+
+        //Fill 8 characters starting from str[13] with '.'
+        memset(str + 13, '.', 8*sizeof(char));
+
+        printf("After memset(): %s", str);
+        return 0;
+      }
+
+      //Before memset(): GeeksForGeeks is for programming geeks.
+      //After memset(): GeeksForGeeks........programming geeks.
+      //========================
+      Explanation - (str + 13) points to first space (0 based index) of the string - 
+      "GeeksForGeeks is for programming geeks.", and memset() sets the character '.' starting from first
+      ' ' of the string up to 8 character positiion of the given string and hence we get the output.
+      //========================
+  */
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
       /* Add the page to the process's address space. */
       if (!install_page (upage, kpage, writable)) 
         {
+              /*
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
           palloc_free_page (kpage);
           return false; 
         }
@@ -743,32 +910,109 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 }
 
 /* Create a minimal stack by mapping a zeroed page at the top of
-   user virtual memory. */
+   user virtual memory. 
+   
+   If a user tries to access an unmapped addrss, it will page fault.
+   Even if we are in kernel mode you can page fault if you try to 
+      access an unmapped address.
+
+      cp -r pintos .
+                        argc = 4
+                        argv[0] = "cp"
+                        argv[1] = "-r"
+                        argv[2] = "pintos"
+                        argv[3] = "."
+                        argv[4] = 0
+
+      PHYS_BASE
+          .
+          os
+          pint
+          -r
+          cp
+          argv[4]
+          argv[3]
+          argv[2]
+          argv[1]
+          argv
+          argc
+          Return Value  <-----stack pointer
+          |
+          v
+   */
 static bool
 //setup_stack (void **esp) 
-setup_stack (void **esp, char* in_args) 
+setup_stack (void **esp, char *in_args) 
 {
   uint8_t *kpage;
   bool success = false;
   int index = 0;
   const int WORD_LIMIT = 50;
+  /*
+    Can't let our stack get too big.
+      Can't let it overflow, or else we will not have room on kernel stack
+      The struct thread is only a few bytes
+      But we cannot allocate large structures or arrays as non-static local variables.
+      We have to use the malloc or the palloc_get_page
+
+      void *palloc_get_page(enum palloc_flags FLAGS)
+          PAL_ZER0 - zero all the bytes in the allocated pages before returning them
+                if not set, the contents of new allocated pages are unpredictable
+          PAL_USER - obtain the pages from teh user pool. if not set, pages are 
+                allocated from the kernel pool 
+  */
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  //if it is not NULL then it was allocated and we can continue
   if (kpage != NULL) 
     {
+      /*install_page -  Adds a mapping from user virtual address UPAGE to kernel
+   virtual address KPAGE to the page table.
+   If WRITABLE is true, the user process may modify the page;
+   otherwise, it is read-only.
+   UPAGE must not already be mapped.
+   KPAGE should probably be a page obtained from the user pool
+   with palloc_get_page().
+   Returns true on success, false if UPAGE is already mapped or
+   if memory allocation fails. */
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       //if (success)
+            //NOTE: the manual hints at /*esp = PHYS_BASE - 12;
+            //      this messes the program, not sure why
+
       //=======PHYS_BASE - 12=====================================
       //*esp = PHYS_BASE      //ORIGINAL 
       //*esp = PHYS_BASE - 12; //changed w/-12 on 3/14/18
       if (success)
       {  
         // Parsing arguments:
-        char *current, *buffer;
+        char *current;
+        char *buffer;
         char *current_arg[WORD_LIMIT];
 
+        //in_args coming in with function
+        //esp = stack pointer, coming in with function.
+          /*
+          exp. strtok_r
+  
+          //We are splitting a string base on a space character
+          char str[] = "Geeks for Geeks";
+          char *token;
+          char *rest = str;
+          while ((token = strtok_r(rest, " ", &rest)))
+            printf("%s\n", token)
+
+            -->result = 
+                Geeks
+                for
+                Geeks
+  */
+  // Remember we have to run through and place our args in place
         for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
         {
+          //we get our allocation details, remember not to forget the inherent NULL
           int size_of_curr = strlen(current) + 1;
+          //We need to allocate in precision, and in line with each arg
+          //    once we have allocated make sure to copy into place
           current_arg[index] = malloc(size_of_curr);
           strlcpy(current_arg[index], current, size_of_curr);
           ++index;
@@ -806,12 +1050,45 @@ setup_stack (void **esp, char* in_args)
           // This gets us the 'closest' next word-aligned address.
           *esp =  (void*) ((int) *esp & ~0x03);
         }
-        
-        
         // 2. Push NULL pointer
         *esp -= 4;
+        // NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
+  // Establish the NULL pointer sentinel
+  // memset() is used to fill a block of memory with a particular value
+  //      ptr ==> starting address of memory to be filled
+  //      x   ==> value to be filled
+  //      n   ==> number of bytes to be filled, starting from ptr to be filled
+  // void *memset(void *ptr, int x, size_t n);
+  //  Note: that the ptr is a void pointer, so that we can pass any type of ptr to this function.
+  /*
+  //========================
+  //========================
+  //========================
+      // C example of memset
+      #include <studio.h>
+      #include <string.h>
+
+      int main()
+      {
+        char str[50] = "GeeksForGeeks is for programming geeks.";
+        printf("\nBefore memset(): %s\n", str);
+
+        //Fill 8 characters starting from str[13] with '.'
+        memset(str + 13, '.', 8*sizeof(char));
+
+        printf("After memset(): %s", str);
+        return 0;
+      }
+
+      //Before memset(): GeeksForGeeks is for programming geeks.
+      //After memset(): GeeksForGeeks........programming geeks.
+      //========================
+      Explanation - (str + 13) points to first space (0 based index) of the string - 
+      "GeeksForGeeks is for programming geeks.", and memset() sets the character '.' starting from first
+      ' ' of the string up to 8 character positiion of the given string and hence we get the output.
+      //========================
+  */
         memset(*esp, 0, 4);
-        
         
         // 3. Push args in reverse order.
         for(int i = index-1; i >= 0; --i)
@@ -830,11 +1107,52 @@ setup_stack (void **esp, char* in_args)
 
         // 6. Push 'fake' return address.
         *esp -= 4;
+        // NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
+  // Establish the NULL pointer sentinel
+  // memset() is used to fill a block of memory with a particular value
+  //      ptr ==> starting address of memory to be filled
+  //      x   ==> value to be filled
+  //      n   ==> number of bytes to be filled, starting from ptr to be filled
+  // void *memset(void *ptr, int x, size_t n);
+  //  Note: that the ptr is a void pointer, so that we can pass any type of ptr to this function.
+  /*
+  //========================
+  //========================
+  //========================
+      // C example of memset
+      #include <studio.h>
+      #include <string.h>
+
+      int main()
+      {
+        char str[50] = "GeeksForGeeks is for programming geeks.";
+        printf("\nBefore memset(): %s\n", str);
+
+        //Fill 8 characters starting from str[13] with '.'
+        memset(str + 13, '.', 8*sizeof(char));
+
+        printf("After memset(): %s", str);
+        return 0;
+      }
+
+      //Before memset(): GeeksForGeeks is for programming geeks.
+      //After memset(): GeeksForGeeks........programming geeks.
+      //========================
+      Explanation - (str + 13) points to first space (0 based index) of the string - 
+      "GeeksForGeeks is for programming geeks.", and memset() sets the character '.' starting from first
+      ' ' of the string up to 8 character positiion of the given string and hence we get the output.
+      //========================
+  */
         memset(*esp, 0, 4);
         //*esp -= 4;
         //printf("esp =%x\n",*esp);
       }
       else
+          /*
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
         palloc_free_page (kpage);
     }
   return success;
@@ -856,19 +1174,6 @@ install_page (void *upage, void *kpage, bool writable)
 
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
-  return (pagedir_get_page (t->pagedir, upage) == NULL
-          && pagedir_set_page (t->pagedir, upage, kpage, writable));
+  return (pagedir_get_page (t->pagedir, upage) == NULL && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
 //===========================================
-void test_stack(int* t) 
-{
-    int i;
-    int argc = t[1];
-    char ** argv;
-
-    argv = (char **) t[2];
-    printf("ARGC:%d ARGV:%x\n", argc, (unsigned int)argv);
-    for(int i = 0; i < argc; i++){
-        printf("argv[%d] = %x pointing at %s\n", i, (unsigned int)argv[i], argv[i]);
-    }
-}//===========================================
