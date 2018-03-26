@@ -14,11 +14,32 @@
 #include "filesys/filesys.h"
 //-----------------------------
 
+/*
+Remember we cannot execute kernel code from the user space.
+We need to signal the kernel that we want to execute and have the system switch to the kernel mode.
+i.e. interrupt
+If we have an  interrupt/exception then the system will switch to kernel mode.
+This can then execute the exception handler i.e. syscall_handler
+We can easily register the system_call here, but implementing is what is hard.
+
+esp should point syscall --> remember esp is the stack pointer
+---> @ param f
+eax should contain return value of syscall
+
+*/
 static void syscall_handler (struct intr_frame *);
 
 void
 syscall_init (void) 
 {
+  /*
+Function: 
+void intr_register_int (uint8_t vec, int dpl, enum intr_level level, intr_handler_func *handler, const char *name)
+https://web.stanford.edu/class/cs140/projects/pintos/pintos_6.html
+
+Registers handler to be called when internal interrupt numbered vec is triggered. 
+Names the interrupt name for debugging purposes.
+*/ 
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
@@ -27,8 +48,60 @@ static void
 syscall_handler (struct intr_frame *f) 
 {
   //printf ("\n\nsystem call! from /home/pintos/pintos/src/userprog/syscall.c\n");
-  int* sys_call_number = (int*) f->esp;
+  /*
+  Adding taken notes, to stop from flipping back and forth for minor issues.
+    const char *p = "abc"; ----> 4bytes for a, b, c, \0   which are stored somewhere.
+        p = the address where those 4 bytes are stored.
+
+    if that string started at:    0x1000 and p=32bit pointer at 0x2000
+        then the memory content = 
+        Memory Address(hex)     Variable name     Contents
+        1000                                      'a' == 97 (ascii)
+        1001                                      'b' == 98
+        1002                                      'c' == 99
+        1003                                      0
+        ...
+        2000 - 2003             p                 1000 (hex)
+
+        So p is storing the address of 0x1000
+        *p    == 'a'          the first character at address p
+        p[1]  == 'b'
+        ...
+        i.e. (*(p+1) == 'b')   which is another notation for p[1]
+
+        Note for our loops we can ++p for move from 0x1000 to 0x1001
+            So if we go:
+                *p == 'a'
+                ++p
+                *p == 'b' //now
+
+        Remember to use our pointers when we actually need to write to it.
+            int x     = 2     //var x = 2
+            int *p_x  = &x    //pointer that holds the address of x
+            *p_x      = 4     //change the memory at the address in p_x so inherently we are changing x
+
+        Dereferencing and accessing a structure data member
+            We have a variable, that is a pointer to a structure.
+                The structure has data members
+                We can access those member using the dereference pointer  '->'
+
+                typedef struct X {
+                  int i_;
+                  double d_;
+                } X;
+
+                X x;              //create a struct x
+                X *p  = &x;       //create a struct pointer, points to address of x
+                p->d_ = 3.14159;  //dereference and access data member x.d_
+                (*p).d_ *= -1;    //another equivalent notation for accessing x.d_  
+
+
+  */            
+  int *sys_call_number = (int *) f->esp;
   //printf("System call number is: %d\n", *sys_call_number);
+  // Remember that if we do not send a valid syscall number
+  //    then we have no syscall to jump to. The Validate function helps us to check it out 
+  //    otherwise the Validate will exit and skip over this switch call
   validate(sys_call_number);
   
   /*
@@ -40,6 +113,21 @@ syscall_handler (struct intr_frame *f)
     program that includes ‘lib/user/syscall.h’. (This header, and all others in ‘lib/user’,
     are for use by user programs only.) System call numbers for each system call are defined in
     ‘lib/syscall-nr.h’:
+
+        / Projects 2 and later. /
+    SYS_HALT,                   / Halt the operating system. /
+    SYS_EXIT,                   / Terminate this process. /
+    SYS_EXEC,                   / Start another process. /
+    SYS_WAIT,                   / Wait for a child process to die. /
+    SYS_CREATE,                 / Create a file. /
+    SYS_REMOVE,                 / Delete a file. /
+    SYS_OPEN,                   / Open a file. /
+    SYS_FILESIZE,               / Obtain a file's size. /
+    SYS_READ,                   / Read from a file. /
+    SYS_WRITE,                  / Write to a file. /
+    SYS_SEEK,                   / Change position in a file. /
+    SYS_TELL,                   / Report current position in a file. /
+    SYS_CLOSE,                  / Close a file. /
   */
   switch(*sys_call_number)
   {
@@ -105,18 +193,30 @@ syscall_handler (struct intr_frame *f)
       //printf("syscall.c ==> SYS_EXEC!\n");
       //printf --> calls for printf in these cases are causing tests to fail???
       //char *buffer = *((char **) (f->esp + 4));
+      // Remember ** points to a pointer which points at an address
+      //    int x       = 6; 
+      //    int *ptr2   = &var;
+      //    int **ptr1  = &ptr2;
+      // set our raw to the char at our stack pointer, + 4bytes
       char **raw = (char **) (f->esp+4);//---------------------
+      //Use our validate function to make sure this address is valid
       validate(raw);//---------------------
       int i = 0;//---------------------
       do
       {//---------------------
+      // Now we must validate that these 4 bytes hold what we are actually trying to access
         validate(*raw+i);//---------------------
         i+=4;//---------------------
+        //This while runs until we hit the end of our 4byte address
       }while(*raw[i-4] != '\0');//---------------------
       //---------------------
       //printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
       //validate(buffer);
       //f->eax = process_execute(buffer);
+      /* Starts a new thread running a user program loaded from
+   FILENAME.  The new thread may be scheduled (and may even exit)
+   before process_execute() returns.  Returns the new process's
+   thread id, or TID_ERROR if the thread cannot be created. */
       f->eax = process_execute(*raw);
       //printf("after execution.\n");
 
@@ -479,9 +579,13 @@ void validate(void *addr)
   // {
   //   exit(-1);
   // }
+  // Remember we are working with 4 bytes.
   for(int i = 0; i < 4; ++i)
   {
-    if(addr+i == NULL || !is_user_vaddr(addr+i) || pagedir_get_page(thread_current()->pagedir,addr+i) == NULL){
+    if(addr+i == NULL 
+    || !is_user_vaddr(addr+i) 
+    || pagedir_get_page(thread_current()->pagedir,addr+i) == NULL)
+    {
       exit(-1);
     }
   }

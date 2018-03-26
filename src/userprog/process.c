@@ -30,9 +30,12 @@ tid_t
 process_execute (const char *file_name) 
 {
   //char *fn_copy;
-  tid_t tid;
+  tid_t tid; //the user thread
+  //  first_arg is for us to allocate an array before we strcpy down below
+  //    Remember we have a following NULL, and strlen wont account for that, need +1
+  //    Now we will be pointing to the allocation of memory for our future strcpy+NULL
   char *first_arg = malloc(strlen(file_name) + 1);
-  char *dummy_arg;
+  char *dummy_arg; //our token pointer
   struct thread *t = thread_current();
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -48,13 +51,6 @@ process_execute (const char *file_name)
 
 
   /*
-  int MAX_WORDS = 50; 
-  char *arguments[MAX_WORDS]; //the char * array to hold each argument. - 
-  char *s = file_name;        //set pointer to file_name arg - 
-  char *token, *save_ptr;     //ptrs sent in for tracking location in string, do not need initial values - 
-  int arg_count = 0;
-  //int current_stack_pos = PHYS_BASE;
-
   //------------------------------------------
   strtok_r explanation:
     strtok_r() for splitting a string with some delimiter. Splitting a string is a common task
@@ -64,6 +60,18 @@ process_execute (const char *file_name)
         reentrant version = a function is said to be reentrant if there is a provision to interrupt
           the function in the course of execution, service the interrupt service routine adn then 
           resume the earlier going on function, without hampering its earlier course of action.
+
+          //We are splitting a string base on a space character
+          char str[] = "Geeks for Geeks";
+          char *token;
+          char *rest = str;
+          while ((token = strtok_r(rest, " ", &rest)))
+            printf("%s\n", token)
+
+            -->result = 
+                Geeks
+                for
+                Geeks
   //-------------------------------------------
   for (token = strtok_r(s, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr));
   {
@@ -140,10 +148,31 @@ process_execute (const char *file_name)
 
   //-----------------------------------------------------------
   //s-----------------------------------------------------------
-  //fn_copy = palloc_get_page (0);
+  //fn_copy = palloc_get_page (0); 
   //struct pass_in *data = palloc_get_page(0);
+  /*
+    We are malloc-ing to allocate ehap memory the size of our struct.
+        We have to keep in mind where all variables are stored, on the stack and heap.
+        Inside of our function, we have local variables.
+            These are stored on our stack.
+            That stack will be cleared out of the function.
+        We want to reference or use those variables outside, once we have left the funtion
+            and therefore cleared the stack.
+        We need to allocate that memory space on the heap.
+            This lets us use that "local" variable outside.
+
+        The malloc() function allocates SIZE bytes, and returns a pointer to the allocated
+            memory. The memory in not initialized. If size==0 then malloc returns NULL
+                             |||     SIZE            |||  */
   struct pass_in *data = malloc(sizeof(struct pass_in));
+      /*
+          So we just allocated a memory chunk of:  size=sizeof(pass_in) in bytes
+              And the address return from malloc is stored in 'data'
+      */
   //if (fn_copy == NULL)
+  //Remember if the address that we are pointing to does not have what we want, ie space
+  //    we cannot use this space.
+  //    so return an error not a space thread
   if (data == NULL)
   {
     return TID_ERROR;
@@ -155,7 +184,29 @@ process_execute (const char *file_name)
 
 
   // Parse the first part of the name here. We need it for the thread's name.
+  //  first_arg was for us to allocate an array before we strcpy down below
+  //    Remember we have a following NULL, and strlen wont account for that, need +1
+  //    Now first_arg will be pointing to the allocation of memory for our future strcpy+NULL
+  /*
+      So we are pointing at the allocated space
+          We are bringing along our file_name pointer
+          And the size of the file + a null
+        This is all copied into the first_arg allocated space
+  */
   strlcpy(first_arg, file_name, strlen(file_name) + 1);
+  /*
+          //We are splitting a string base on a space character
+          char str[] = "Geeks for Geeks";
+          char *token;
+          char *rest = str;
+          while ((token = strtok_r(rest, " ", &rest)))
+            printf("%s\n", token)
+
+            -->result = 
+                Geeks
+                for
+                Geeks
+  */
   strtok_r(first_arg, " ", &dummy_arg);
 
   // Copy the complete command line args into fn_copy. We'll pass this
