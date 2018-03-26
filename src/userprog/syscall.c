@@ -377,8 +377,16 @@ syscall_handler (struct intr_frame *f)
         i+=4;
         //remember we have a byte address, that ends in a NULL
       }while(*raw[i-4] != '\0');
+      //return our current thread
       struct thread *t = thread_current();
       int retval;
+
+      /* Opens the file with the given NAME.
+   Returns the new file if successful or a null pointer
+   otherwise.
+   
+   Fails if no file named NAME exists,
+   or if an internal memory allocation fails. */
       struct file *op = filesys_open(*raw);
       struct file_map fm;
       if(op == NULL)
