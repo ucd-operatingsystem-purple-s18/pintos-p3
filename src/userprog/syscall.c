@@ -12,6 +12,9 @@
 #include "userprog/pagedir.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+// i think we need the string lib. I still dont completely get the 
+//      difference with this and c vs c++
+#include "string.h"
 //-----------------------------
 
 /*
@@ -39,6 +42,20 @@ https://web.stanford.edu/class/cs140/projects/pintos/pintos_6.html
 
 Registers handler to be called when internal interrupt numbered vec is triggered. 
 Names the interrupt name for debugging purposes.
+
+0x30 - pintos uses for system calls
+    user processes will push parameters onto the stack and execute int 0x30
+In the kernel, pintos will handle int 0x30 by callign syscall_handler
+
+Remember that syscalls are implemented only in kernel, not in userland.
+
+2nd param = int dpl
+    dpl - determines how the interrupt can be invoked. if dpl is 0, then the interrupt
+        can eb invoked only by kernel threads.
+    Otherwise dpl should be set to 3 (set it here)
+        3 allows user processes to invoke the interrupt with an explicit INT instruction.
+    The value of dpl doesnt affect user processes' ability to invoke the interrupt
+        indirectly e.g. an invalid memory reference will cause a page fault regardless of dpl.
 */ 
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
@@ -129,6 +146,13 @@ syscall_handler (struct intr_frame *f)
     SYS_SEEK,                   / Change position in a file. /
     SYS_TELL,                   / Report current position in a file. /
     SYS_CLOSE,                  / Close a file. /
+  */
+
+  /*
+    Remem:
+    system call number is passed int he %eax register (32 bit)
+        This is to distinguish which syscall to invoke
+    alltrap() saves it along with all other registers (dont understand alltrap???)
   */
   switch(*sys_call_number)
   {
@@ -418,15 +442,11 @@ syscall_handler (struct intr_frame *f)
     possible up to end-of-file and return the actual number written, or 0 if no bytes could
     be written at all.
 
-    Fd 1 writes to the console. Your code to write to the console should write all of buffer
-    in one call to putbuf(), at least as long as size is not bigger than a few hundred
-    bytes. (It is reasonable to break up larger buffers.) Otherwise, lines of text output
-    by different processes may end up interleaved on the console, confusing both human
-    readers and our grading scripts.
     */
     case SYS_WRITE: 
     {
       //printf("syscall.c ==> SYS_WRITE!\n");
+      //    Fd 1 writes to the console. 
       int *fd = (int *) (f->esp + 4);
       char *buffer = *((char **) (f->esp + 8));
       unsigned size = *((unsigned *) (f->esp + 12));
@@ -435,9 +455,17 @@ syscall_handler (struct intr_frame *f)
       if (*fd == 1)
       {
         //printf("Write to Console:\n");
+        /*
+          Your code to write to the console should write all of buffer
+    in one call to putbuf(), at least as long as size is not bigger than a few hundred
+    bytes. (It is reasonable to break up larger buffers.) Otherwise, lines of text output
+    by different processes may end up interleaved on the console, confusing both human
+    readers and our grading scripts.
+        */
         putbuf(buffer, size);
         retval = size;
       }
+      //Remember the the eax register is for the 32 bit 
       f->eax = retval;
       break;
     }
