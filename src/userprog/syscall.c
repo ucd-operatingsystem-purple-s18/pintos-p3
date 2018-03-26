@@ -90,7 +90,7 @@ syscall_handler (struct intr_frame *f)
                   double d_;
                 } X;
 
-                X x;              //create a struct x
+                X x;              //create a struct xe
                 X *p  = &x;       //create a struct pointer, points to address of x
                 p->d_ = 3.14159;  //dereference and access data member x.d_
                 (*p).d_ *= -1;    //another equivalent notation for accessing x.d_  
@@ -102,7 +102,8 @@ syscall_handler (struct intr_frame *f)
   // Remember that if we do not send a valid syscall number
   //    then we have no syscall to jump to. The Validate function helps us to check it out 
   //    otherwise the Validate will exit and skip over this switch call
-  validate(sys_call_number);
+  //is this raw address available???
+  validate_theStackAddress(sys_call_number);
   
   /*
   3.3.4 System Calls
@@ -163,7 +164,8 @@ syscall_handler (struct intr_frame *f)
       //printf("syscall.c ==> SYS_EXIT!\n");
       //char *thr_name = thread_name();
       int *exit_code = (int *) (f->esp + 4);
-      validate(exit_code);
+      //is this raw address available???
+      validate_theStackAddress(exit_code);
       int retval = *exit_code;
       //printf("%s: exit(%d)\n", thr_name, *exit_code);
       f->eax = retval;
@@ -200,18 +202,21 @@ syscall_handler (struct intr_frame *f)
       // set our raw to the char at our stack pointer, + 4bytes
       char **raw = (char **) (f->esp+4);//---------------------
       //Use our validate function to make sure this address is valid
-      validate(raw);//---------------------
+      //is this raw address available???
+      validate_theStackAddress(raw);//---------------------
       int i = 0;//---------------------
       do
       {//---------------------
       // Now we must validate that these 4 bytes hold what we are actually trying to access
-        validate(*raw+i);//---------------------
+        //is this raw address available???
+        validate_theStackAddress(*raw+i);//---------------------
         i+=4;//---------------------
         //This while runs until we hit the end of our 4byte address
       }while(*raw[i-4] != '\0');//---------------------
       //---------------------
       //printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
-      //validate(buffer);
+      //is this raw address available???
+      //validate_theStackAddress(buffer);
       //f->eax = process_execute(buffer);
       /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -267,7 +272,8 @@ syscall_handler (struct intr_frame *f)
       //printf("syscall.c ==> SYS_WAIT!\n");
       //pid_t wait_pid = *((pid_t *) (f->esp + 4));
       pid_t *wait_pid = ((pid_t *) (f->esp + 4));
-      validate(wait_pid);
+      //is this raw address available???
+      validate_theStackAddress(wait_pid);
       //printf("Waiting for thread: %d\n", wait_pid);
       //process_wait(wait_pid);
       //f->eax = process_wait(wait_pid);
@@ -336,12 +342,14 @@ syscall_handler (struct intr_frame *f)
     case SYS_OPEN: 
     {
       //printf("syscall.c ==> SYS_OPEN!\n");
-      char **raw = (char**) (f->esp+4);
-      validate(raw);
+      char **raw = (char **) (f->esp + 4);
+      //is this raw address available???
+      validate_theStackAddress(raw);
       int i = 0;
       do
       {
-        validate(*raw + i);
+      //is this raw address available???
+        validate_theStackAddress(*raw + i);
         i+=4;
       }while(*raw[i-4] != '\0');
       struct thread *t = thread_current();
@@ -486,7 +494,8 @@ syscall_handler (struct intr_frame *f)
     {
       //printf("syscall.c ==> SYS_CLOSE!\n");
       int  *fd = (int *) (f->esp + 4);
-      validate(fd);
+            //is this raw address available???
+      validate_theStackAddress(fd);
       struct thread *t = thread_current();
       if(*fd != 0 && *fd != 1){
         struct list_elem *e;
@@ -572,12 +581,13 @@ void exit(int exit_code)
   sema_up(&thread_current()->parent_share->dead_sema);
   thread_exit();
 }
-]
+
 // Checking to verify that the address we are sending in is valid.
-void validate(void *addr)
+//is this raw address available???
+void validate_theStackAddress(void *addr)
 {
   // if(addr == NULL || !is_user_vaddr(addr) || pagedir_get_page(thread_current()->pagedir, addr) == NULL)
-  // {
+  // { 
   //   exit(-1);
   // }
   // Remember we are working with 4 bytes.
