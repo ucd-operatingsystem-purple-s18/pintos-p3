@@ -14,13 +14,16 @@
 #include "threads/flags.h"
 #include "threads/init.h"
 #include "threads/interrupt.h"
-#include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+/* for argument passing */
+#define MAX_ARGS 40
+
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
+
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -429,7 +432,7 @@ lock_init (struct lock *lock)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid) 
+process_wait (tid_t child_tid UNUSED) 
 {
   //struct thread *rt_thread;
   //rt_thread = thread_at_tid(child_tid);
@@ -454,9 +457,10 @@ process_wait (tid_t child_tid)
 }
 
 /* Free the current process's resources. */
-void process_exit (void)
+void
+process_exit (void)
 {
-  struct thread *cur = thread_current();
+  struct thread *cur = thread_current ();
   uint32_t *pd;
 
   //================================================
@@ -589,7 +593,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp, char *in_args);
+static bool setup_stack (void **esp, char* argv, int argc);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -602,7 +606,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 bool
 load (const char *file_name, void (**eip) (void), void **esp) 
 {
-  struct thread *t = thread_current();
+  struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
   struct file *file = NULL;
   off_t file_ofs;
@@ -637,17 +641,17 @@ load (const char *file_name, void (**eip) (void), void **esp)
   //-----------------------------------------------------------
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create();
+
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
 
   /* Open executable file. */
-  //file = filesys_open (file_name);
-  file = filesys_open (exec_name);
+  file = filesys_open (file_name);
+  printf("%s\n", file_name);
   if (file == NULL) 
     {
-      //printf ("load: %s: open failed\n", file_name);
-      printf ("load: %s: open failed\n", exec_name);
+      printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
 
@@ -660,7 +664,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
       || ehdr.e_phnum > 1024) 
     {
-      printf ("load: %s: error loading executable\n", exec_name);
+      printf ("load: %s: error loading executable\n", file_name);
       goto done; 
     }
 
@@ -723,11 +727,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
-  //=======================================
-  // Allocate a new string so we don't modify the original argument.
-  char *args_ptr = malloc(strlen(file_name) + 1);
-  strlcpy(args_ptr, file_name, strlen(file_name) + 1);
-  //=======================================
 
   /* Set up stack. 
   Remember we are sending in our pointer to our stack and
@@ -736,6 +735,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   //=======================================
   if (!setup_stack (esp, args_ptr))
   //=======================================
+
     goto done;
 
   /* Start address. */
@@ -747,6 +747,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* We arrive here whether the load is successful or not. */
   //file_deny_write(file);
   file_close(file);
+
   return success;
 }
 
@@ -939,6 +940,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 //setup_stack (void **esp) 
 setup_stack (void **esp, char *in_args) 
+
 {
   /*
     Can't let our stack get too big.
@@ -959,6 +961,7 @@ setup_stack (void **esp, char *in_args)
           PAL_USER - obtain the pages from teh user pool. if not set, pages are 
                 allocated from the kernel pool 
   */
+
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   //if it is not NULL then it was allocated and we can continue
   if (kpage != NULL) 
@@ -1022,26 +1025,16 @@ setup_stack (void **esp, char *in_args)
         // Loop to copy arugments.
         char *char_ptrs[WORD_LIMIT];
         for(int i = index-1; i >= 0; --i)
-        {
-          int size_of_curr = strlen(current_arg[i]) + 1;
-          // Decrement esp to size of arugment to be copied.
-          *esp -= size_of_curr;  
-          strlcpy(*esp, current_arg[i], size_of_curr);
-          char_ptrs[i] = (char *) *esp;
-        }
-        // At this point, all string parts of arguments are on the stack.
-        // We need to:
-        // 1. Word align the next address.
-        // 2. Push NULL pointer.
-        // 3. Push args in reverse order.
-        // 4. Push pointer to argv[0] (argv).
-        // 5. Push argc (count of args, currently in 'index')
-        // 6. Push 'fake' return address.
 
-        // 1. Word Align
-        //    If the current *esp address is not word aligned
-        //    (It's not word-aligned if the either of the lowest two bits are set)
-        if((int) *esp & 0x03)
+        {
+          *esp = *esp - (strlen(argv[i]) + 1)*sizeof(char);
+          arr[i] = (uint32_t *)*esp;
+          memcpy(*esp, argv[i], strlen(argv[i]) + 1);
+        }
+        *esp = *esp - 4;
+        (*(int *)(*esp)) = 0;
+        i = argc;
+        while(--i >= 0)
         {
 
           // Clear the lowest two bits. 
@@ -1144,6 +1137,7 @@ setup_stack (void **esp, char *in_args)
         memset(*esp, 0, 4);
         //*esp -= 4;
         //printf("esp =%x\n",*esp);
+
       }
       else
           /*
@@ -1175,3 +1169,4 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
 //===========================================
+
