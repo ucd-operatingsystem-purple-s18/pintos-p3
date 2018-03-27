@@ -93,10 +93,10 @@ struct thread
     int priority;                       /* Priority. */
     // -----------------------
     //added in P2
-    int next_fd; //holds the next avilabel file descirptor integer
-    struct list children; //list to hold all the child processes of this process
-    struct list files; //list to hold all the open files fo this process
-    struct shared_data *parent_share; //pointer to hold the data shared with this process parent (should only be one)
+    int next_fd; /* holds the next avilabel file descirptor integer */
+    struct list children; /* list to hold all the child processes of this process */
+    struct list files;  /* list to hold all the open files fo this process */
+    struct shared_data *parent_share; /* pointer to hold the data shared with this process parent */
 
     //-----------------------
     struct list_elem allelem;           /* List element for all threads list. */
