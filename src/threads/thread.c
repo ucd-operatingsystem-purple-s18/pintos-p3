@@ -213,11 +213,11 @@ thread_create (const char *name, int priority,
 void
 thread_block (void) 
 {
-  ASSERT (!intr_context ());
-  ASSERT (intr_get_level () == INTR_OFF);
+  ASSERT (!intr_context());
+  ASSERT (intr_get_level() == INTR_OFF);
 
-  thread_current ()->status = THREAD_BLOCKED;
-  schedule ();
+  thread_current()->status = THREAD_BLOCKED;
+  schedule();
 }
 
 /* Transitions a blocked thread T to the ready-to-run state.
@@ -255,16 +255,23 @@ thread_name (void)
 struct thread *
 thread_current (void) 
 {
-  struct thread *t = running_thread ();
+  struct thread *t = running_thread();
   
   /* Make sure T is really a thread.
      If either of these assertions fire, then your thread may
      have overflowed its stack.  Each thread has less than 4 kB
      of stack, so a few big automatic arrays or moderate
-     recursion can cause stack overflow. */
+     recursion can cause stack overflow. 
+     
+     Remember the pintos ASSERT macro
+     Function starts with assertions to check for validity.
+     defined in "<debug.h>"
+      It is testing the value of the expression, if it evaluates to 0, the kernel panics
+          Panic message will return info pointing at problem.
+     */
   ASSERT (is_thread (t));
   ASSERT (t->status == THREAD_RUNNING);
-
+  // Assertion tests have passed, send back our legit thread
   return t;
 }
 
@@ -272,7 +279,11 @@ thread_current (void)
 tid_t
 thread_tid (void) 
 {
-  return thread_current ()->tid;
+  //thread_current
+  //    using pintos ASSERT macros to make sure that our thread 
+  //        is valid, and has not overflowed.
+  //        "in thread.c"
+  return thread_current()->tid;
 }
 
 /* Deschedules the current thread and destroys it.  Never
@@ -280,20 +291,26 @@ thread_tid (void)
 void
 thread_exit (void) 
 {
-  ASSERT (!intr_context ());
+  ASSERT (!intr_context());
 
 #ifdef USERPROG
-  process_exit ();
+  process_exit();
 #endif
 
   /* Remove thread from all threads list, set our status to dying,
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
-  intr_disable ();
-  list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
-  schedule ();
-  NOT_REACHED ();
+  intr_disable();
+    //thread_current
+  //    using pintos ASSERT macros to make sure that our thread 
+  //        is valid, and has not overflowed.
+  //        "in thread.c"
+  list_remove(&thread_current()->allelem);
+  //remember that we are returning a thread
+  //    this thread is going to cease to exist, so we need to account for that status
+  thread_current()->status = THREAD_DYING;
+  schedule();
+  NOT_REACHED();
 }
 
 /* Yields the CPU.  The current thread is not put to sleep and
@@ -301,17 +318,21 @@ thread_exit (void)
 void
 thread_yield (void) 
 {
+    //thread_current
+  //    using pintos ASSERT macros to make sure that our thread 
+  //        is valid, and has not overflowed.
+  //        "in thread.c"
   struct thread *cur = thread_current ();
   enum intr_level old_level;
   
-  ASSERT (!intr_context ());
+  ASSERT (!intr_context());
 
-  old_level = intr_disable ();
+  old_level = intr_disable();
   if (cur != idle_thread) 
     list_push_back (&ready_list, &cur->elem);
   cur->status = THREAD_READY;
-  schedule ();
-  intr_set_level (old_level);
+  schedule();
+  intr_set_level(old_level);
 }
 
 /* Invoke function 'func' on all threads, passing along 'aux'.
@@ -331,11 +352,9 @@ thread_foreach (thread_action_func *func, void *aux)
     }
 }
 //===================================
-struct thread *thread_at_tid(tid_t target_tid)
-{
+struct thread *thread_at_tid(tid_t target_tid){
     struct list_elem *e;
-    for (e = list_begin (&all_list); e != list_end (&all_list);
-       e = list_next (e))
+    for (e = list_begin (&all_list); e != list_end(&all_list); e = list_next(e))
     {
       struct thread *t = list_entry (e, struct thread, allelem);
       if(t->tid == target_tid){
@@ -353,14 +372,14 @@ struct thread *thread_at_tid(tid_t target_tid)
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  thread_current()->priority = new_priority;
 }
 
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
 {
-  return thread_current ()->priority;
+  return thread_current()->priority;
 }
 
 /* Sets the current thread's nice value to NICE. */
@@ -481,13 +500,18 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+  //------------------
+  t->next_fd = 2;
+  //------------------
 
 
   //=================================
   // Initialize list of children for the thread.
   list_init(&t->children);
+  //initialize list of files fo the process
+  list_init(&t->files);
   // Initialize semaphore for this thread.
-  sema_init(&t->wait_sema, 0);
+  //sema_init(&t->wait_sema, 0);
   //=================================
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
@@ -563,6 +587,12 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
+      /*
+      We are getting this error obviously here
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
       palloc_free_page (prev);
     }
 }
@@ -573,21 +603,41 @@ thread_schedule_tail (struct thread *prev)
    thread to run and switches to it.
 
    It's not safe to call printf() until thread_schedule_tail()
-   has completed. */
+   has completed. 
+   
+   Remember that we are here and it is responsible for switchin out threads
+   --> threads/thread.c
+
+   */
 static void
 schedule (void) 
 {
-  struct thread *cur = running_thread ();
-  struct thread *next = next_thread_to_run ();
+  //We are recording our current thread in local variable cur
+  struct thread *cur = running_thread();
+  //determine the next thread to run as local variable next
+  struct thread *next = next_thread_to_run();
   struct thread *prev = NULL;
 
-  ASSERT (intr_get_level () == INTR_OFF);
-  ASSERT (cur->status != THREAD_RUNNING);
-  ASSERT (is_thread (next));
+  ASSERT(intr_get_level() == INTR_OFF);
+  ASSERT(cur->status != THREAD_RUNNING);
+  ASSERT(is_thread (next));
 
   if (cur != next)
-    prev = switch_threads (cur, next);
-  thread_schedule_tail (prev);
+  {
+    //call the function to actually do the thread switch
+    /*
+        The thread that we are switching to is also inside 'switch_threads'
+          All the threads not currently running are in there.
+          So the new thread now returns out of the switch_threads and returns
+              the previously running thread
+    */
+    prev = switch_threads(cur, next);
+  }
+  /*
+    thread_schedule_tail is a special case - 
+        In secion A.2.3 under thread switching. Don't completely uderstand
+  */
+  thread_schedule_tail(prev);
 }
 
 /* Returns a tid to use for a new thread. */

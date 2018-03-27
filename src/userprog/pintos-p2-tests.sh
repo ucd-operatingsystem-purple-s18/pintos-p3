@@ -103,7 +103,7 @@ main ()
         # test-bad-jump
         # test-bad-jump2
 
-        # test-multi-oom
+        # #test-multi-oom
 
         # test-lg-create
         # test-lg-full
