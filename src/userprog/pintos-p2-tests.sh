@@ -31,7 +31,7 @@ main ()
         test-args-dbl-space
 
         test-sc-bad-sp
-		test-sc-bad-arg
+        test-sc-bad-arg
         test-sc-boundary
         test-sc-boundary-2
         test-sc-boundary-3

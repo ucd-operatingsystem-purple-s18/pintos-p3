@@ -1230,4 +1230,26 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+// //===========================================
+// //===========================================
+// //===========================================
+// THIS ISNT REALLY NEEDED SINCE WE HAVE BRIANS TEST FILE
+// LEAVE FOR NOW, CONSIDER DELETING
+
+// void test_stack(int* t) {
+//     int i;
+//     int argc = t[1];
+//     char ** argv;
+
+//     argv = (char**) t[2];
+//     printf("ARGC:%d ARGV:%x\n",argc,(unsigned int)argv);
+//     for(int i = 0; i < argc; i++)
+//     {
+//         printf("argv[%d] = %x pointing at %s\n", i, (unsigned int)argv[i],argv[i]);
+//     }
+// }
 //===========================================
+// //===========================================
+// //===========================================
+// //===========================================
+
