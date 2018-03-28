@@ -18,6 +18,12 @@
 //-----------------------------
 
 /*
+Whenever a user process wants to access some kernel functionality, 
+it invokes a system call. This is a skeleton system call handler. 
+Currently, it just prints a message and terminates the user process. 
+In part 2 of this project you will add code to do everything else needed by system calls.
+*/
+/*
 Remember we cannot execute kernel code from the user space.
 We need to signal the kernel that we want to execute and have the system switch to the kernel mode.
 i.e. interrupt
@@ -32,6 +38,17 @@ eax should contain return value of syscall
 */
 static void syscall_handler (struct intr_frame *);
 
+/*
+  When a user program calls one of the functions deﬁned in lib/user/syscall.h, it causes a soft- 
+ware interrupt and creates an interrupt frame. This suspends the currently running thread. 
+The syscall function that the user program calls takes anywhere between 1 and 3 parameters. 
+The pointers to each parameter are pushed onto the stack from the end of the beginning, then 
+an integer value (the syscall code) is pushed last. This frame is then dispatched to the void 
+syscall_handler(struct intr_frame* f); function. This function should look at the ﬁrst 
+element of the frame’s stack pointer (f->esp), and determine the type of syscall to execute. You 
+can get the syscall code by doing the following: 
+int sys_code = (int )f->esp;
+*/
 void
 syscall_init (void) 
 {
@@ -119,7 +136,6 @@ syscall_handler (struct intr_frame *f)
   // Remember that if we do not send a valid syscall number
   //    then we have no syscall to jump to. The Validate function helps us to check it out 
   //    otherwise the Validate will exit and skip over this switch call
-  //is this raw address available???
   validate_theStackAddress(sys_call_number);
   
   /*
@@ -384,7 +400,7 @@ syscall_handler (struct intr_frame *f)
       /* Opens the file with the given NAME.
    Returns the new file if successful or a null pointer
    otherwise.
-   
+
    Fails if no file named NAME exists,
    or if an internal memory allocation fails. */
       struct file *op = filesys_open(*raw);
@@ -534,13 +550,16 @@ syscall_handler (struct intr_frame *f)
       //is this raw address available???
       validate_theStackAddress(fd);
       struct thread *t = thread_current();
-      if(*fd != 0 && *fd != 1){
+      if(*fd != 0 && *fd != 1)
+      {
+        //Each list element is a struct containing a previous and next pointer:
         struct list_elem *e;
         for (e = list_begin (&t->files); e != list_end (&t->files);
           e = list_next (e))
           {
             struct file_map *fmp = list_entry (e, struct file_map, file_elem);
-            if(fmp->fd == *fd){
+            if(fmp->fd == *fd)
+            {
               list_remove(e);
               file_close(fmp->file);
               break;
@@ -628,12 +647,13 @@ void validate_theStackAddress(void *addr)
   //   exit(-1);
   // }
   // Remember we are working with 4 bytes.
+  // 'a' 'b' 'c' '\0'     --> not chars, but that byte is the same
   for(int i = 0; i < 4; ++i)
   {
-    if(addr + i == NULL 
-    || !is_user_vaddr(addr+i) 
-    || pagedir_get_page(thread_current()->pagedir,addr+i) == NULL)
+    if(addr + i == NULL || !is_user_vaddr(addr+i) || pagedir_get_page(thread_current()->pagedir, addr+i) == NULL)
     {
+      //Remember that we need to break out of the total execution
+      //      process if we do not have a legitmate RAW addess
       exit(-1);
     }
   }

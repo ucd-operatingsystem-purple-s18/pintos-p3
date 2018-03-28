@@ -1,0 +1,3 @@
+User applications use SysCalls to interact with kernel.
+    That starts with a trap/interrput
+        int $0x30 for Pintos system calls

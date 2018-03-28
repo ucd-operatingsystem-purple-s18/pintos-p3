@@ -37,6 +37,8 @@ process_execute (const char *file_name)
   char *first_arg = malloc(strlen(file_name) + 1);
   char *dummy_arg; //our token pointer
   struct thread *t = thread_current();
+
+
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   //----------------------------------------------
@@ -82,18 +84,6 @@ process_execute (const char *file_name)
   */
 
 
-  /*
-  //------------------------------------------
-  // We need to put each argument on the stack in reverse order. - 
-  for (int i=arg_count - 1; i>0; --i)
-  {
-    int len = strlen(arguments[i]);
-    strlcpy(current_stack_pos, arguments[i], len);
-    current_stack_pos -= len;
-  }//-------------end for---------------------
-  */
-
-
   // NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
   // Establish the NULL pointer sentinel
   // memset() is used to fill a block of memory with a particular value
@@ -135,7 +125,7 @@ process_execute (const char *file_name)
   //----------------------------------------------
   //----------------------------------------------
   //----------------------------------------------
-  //------/----------------------------------------
+  //----------------------------------------------
   //=================process.c - changes 1 end================
   //==========================================
 
@@ -246,6 +236,27 @@ sema_init (struct semaphore *sema, unsigned value)
     /* Create a new thread to execute FILE_NAME. */
   //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
   //tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
+  /*
+    Which means when a thread is created with thread_create in this function to run the user 
+      program, you will notice that the thread is named the raw ﬁlename: 
+        tid = thread_create(file_name, PRI_DEFAULT, start_process, fn_copy);
+
+  Also notice fn_copy. This is a copy of the raw ﬁlename and passed in as an 
+  auxiliary parameter. This will come in handy. The function this thread will run 
+  is start_process, which takes in an argument void *file_name_. 
+  
+  fn_copy is passed in as this argument, allowing you access to a copy of the full 
+  raw ﬁlename in this function. This will come in handy. 
+  
+  If you look at the start_process function, you will see a load function; this function is where 
+the user program gets loaded with all its data. In this load function, Pintos will 
+try to load the executable (a ﬁle) with filesys_open(file_name). 
+Once again, this ﬁlename should not be the raw ﬁlename but instead just the executable name. 
+You will decide when to extract the executable name and pass in the correct string. 
+In the load function you will also ﬁnd a function called setup_stack. 
+This is the function in which you will setup the stack for each user program
+
+  */
   tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
 
   sema_down(&data->load_sema);
@@ -427,7 +438,11 @@ lock_init (struct lock *lock)
    immediately, without waiting.
 
    This function will be implemented in problem 2-2.  For now, it
-   does nothing. */
+   does nothing. 
+   
+   ---(process_wait) = Waits for the child process with designated 
+        tid process_wait to ﬁnish before continuing execution.
+   */
 int
 process_wait (tid_t child_tid) 
 {
@@ -438,10 +453,14 @@ process_wait (tid_t child_tid)
   //  return -1;
   //}
   struct thread *t = thread_current();
+  //Each list element is a struct containing a previous and next pointer:
+  //    Note: we are cycling through our list_elem but this is auto empty 
+  //      This is where we have to finish with wait. This has to be assigned first
   struct list_elem *e;
   for (e = list_begin (&t->children); e != list_end (&t->children); e = list_next (e))
   {
       struct shared_data *share = list_entry (e, struct shared_data, child_elem);
+      //Checking for our child to finnish
       if(share->tid == child_tid)
       {
         sema_down(&share->dead_sema);
@@ -450,6 +469,7 @@ process_wait (tid_t child_tid)
       }
   }
   //sema_down(&rt_thread->wait_sema);
+  //the -1 means the parent process will return without the child closing
   return -1;
 }
 
@@ -478,6 +498,7 @@ void process_exit (void)
   // the parent should deallocate.
   for(int i = 0; i < list_size(&cur->children); ++i)
   {
+    //Each list element is a struct containing a previous and next pointer:
     struct list_elem *e = list_pop_front(&cur->children);
     struct shared_data *data = list_entry(e, struct shared_data, child_elem);
     if(data->ref_count == 1)
@@ -639,11 +660,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
   t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
     goto done;
-  process_activate ();
+  process_activate();
 
   /* Open executable file. */
   //file = filesys_open (file_name);
-  file = filesys_open (exec_name);
+  file = filesys_open(exec_name);
   if (file == NULL) 
     {
       //printf ("load: %s: open failed\n", file_name);
@@ -734,12 +755,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
       the pointer to the allocated space, with our copied args
   */
   //=======================================
-  if (!setup_stack (esp, args_ptr))
+  if (!setup_stack(esp, args_ptr))
+  //make sure to account for if we 
   //=======================================
     goto done;
 
   /* Start address. */
-  *eip = (void (*) (void)) ehdr.e_entry;
+  *eip = (void(*)(void))ehdr.e_entry;
 
   success = true;
 
@@ -832,6 +854,13 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
       /* Get a page of memory. */
+      /*
+    Can't let our stack get too big.
+      Can't let it overflow, or else we will not have room on kernel stack
+      The struct thread is only a few bytes
+      But we cannot allocate large structures or arrays as non-static local variables.
+      We have to use the malloc or the palloc_get_page
+  */
       uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
         return false;
@@ -936,6 +965,22 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
           |
           v
    */
+  /*
+The void** esp is the stack pointer. 
+This is a double pointer because you will be doing pointer
+manipulation, and since you want these modifications to be global and not just 
+within this function’s scope, you are given a pointer to the stack pointer 
+(pass by pointer for a pointer). 
+
+Meaning to write things to the stack you will want to dereference void** esp.
+
+Initially, void** esp is initialized to PHYS_BASE, 
+which is basically the bottom of the stack
+(0xbffffffff).
+*esp = PHYS_BASE;
+
+After that, we can start writing to the stack.
+  */
 static bool
 //setup_stack (void **esp) 
 setup_stack (void **esp, char *in_args) 
@@ -950,7 +995,7 @@ setup_stack (void **esp, char *in_args)
   uint8_t *kpage;
   bool success = false;
   int index = 0;
-  const int WORD_LIMIT = 50; //our char pe/rlimit from the manual
+  const int WORD_LIMIT = 50; //our char per/limit from the manual
   
   /*
       void *palloc_get_page(enum palloc_flags FLAGS)
@@ -968,6 +1013,13 @@ setup_stack (void **esp, char *in_args)
    If WRITABLE is true, the user process may modify the page;
    otherwise, it is read-only.
    UPAGE must not already be mapped.
+   
+    Can't let our stack get too big.
+      Can't let it overflow, or else we will not have room on kernel stack
+      The struct thread is only a few bytes
+      But we cannot allocate large structures or arrays as non-static local variables.
+      We have to use the malloc or the palloc_get_page
+  
    KPAGE should probably be a page obtained from the user pool
    with palloc_get_page().
    Returns true on success, false if UPAGE is already mapped or
@@ -1013,11 +1065,12 @@ setup_stack (void **esp, char *in_args)
           //    once we have allocated make sure to copy into place
           current_arg[index] = malloc(size_of_curr);
           strlcpy(current_arg[index], current, size_of_curr);
+
           ++index;
         }
 
         // Stack pointer is set here. Now we can copy over the arguments.
-        *esp = PHYS_BASE;
+        *esp = PHYS_BASE - 12;
 
         // Loop to copy arugments.
         char *char_ptrs[WORD_LIMIT];
@@ -1087,6 +1140,14 @@ setup_stack (void **esp, char *in_args)
       //========================
   */
         memset(*esp, 0, 4);
+
+
+
+        //         ///////////////
+        // memset(current_stack_pos, 0, 4);
+        // current_stack_pos -= 4;
+        // hex_dump(current_stack_pos, current_stack_pos, 25, true);
+        // ///////////////
         
         // 3. Push args in reverse order.
         for(int i = index-1; i >= 0; --i)
@@ -1114,13 +1175,6 @@ setup_stack (void **esp, char *in_args)
   // void *memset(void *ptr, int x, size_t n);
   //  Note: that the ptr is a void pointer, so that we can pass any type of ptr to this function.
   /*
-  //========================
-  //========================
-  //========================
-      // C example of memset
-      #include <studio.h>
-      #include <string.h>
-
       int main()
       {
         char str[50] = "GeeksForGeeks is for programming geeks.";
@@ -1161,8 +1215,10 @@ setup_stack (void **esp, char *in_args)
    If WRITABLE is true, the user process may modify the page;
    otherwise, it is read-only.
    UPAGE must not already be mapped.
+
    KPAGE should probably be a page obtained from the user pool
    with palloc_get_page().
+
    Returns true on success, false if UPAGE is already mapped or
    if memory allocation fails. */
 static bool
