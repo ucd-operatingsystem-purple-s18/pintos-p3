@@ -456,7 +456,23 @@ syscall_handler (struct intr_frame *f)
     case SYS_FILESIZE: 
     {
       //printf("syscall.c ==> SYS_FILESIZE!\n");
-
+      int *fd = (int *) (f->esp + 4);
+      validate_theStackAddress(fd);
+      struct thread *t = thread_current();
+      
+      struct list_elem *e;
+      int retval = -1;
+      
+      for (e = list_begin (&t->files); e != list_end (&t->files);
+        e = list_next (e))
+        {
+          struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+          if(fmp->fd == *fd)
+          {
+              retval = file_length(fmp->file);
+              break;
+            }
+        }
       break;
     }
     //----------------------------------------------
