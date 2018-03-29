@@ -457,16 +457,20 @@ syscall_handler (struct intr_frame *f)
     {
       //printf("syscall.c ==> SYS_FILESIZE!\n");
       int *fd = (int *) (f->esp + 4);
+      //We are checking the base address
       validate_theStackAddress(fd);
+      //bring in our current thread
       struct thread *t = thread_current();
-      
+      //state our struct containing a previous and next pointer:
       struct list_elem *e;
       int retval = -1;
-      
+      //roll through our list 
+      //    we are testing
       for (e = list_begin (&t->files); e != list_end (&t->files);
-        e = list_next (e))
+        e = list_next(e))
         {
-          struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+          struct file_map *fmp = list_entry(e, struct file_map, file_elem);
+          //need to check our filemap and see if we are concurrent
           if(fmp->fd == *fd)
           {
               retval = file_length(fmp->file);
@@ -490,7 +494,40 @@ syscall_handler (struct intr_frame *f)
     case SYS_READ: 
     {
       //printf("syscall.c ==> SYS_READ!\n");
+      int *fd = (int *) (f->esp + 4);
+      char **raw = (char **) (f->esp + 8);
+      unsigned *size = (unsigned *) (f->esp + 12);
+      int retval;
+      validate_theStackAddress(fd);
+      validate_theStackAddress(raw);
+      validate_theStackAddress(size);
+      for(int i = 0; i < *size; ++i)
+      {
+        validate_theStackAddress(*raw + i);
+      }
 
+      if(*fd == 0)
+      {
+        for(int i = 0; i < *size; ++i)
+        {
+          *raw[i] = input_getc();
+        }
+        retval = *size;
+      }else{
+        struct thread *t = thread_current();
+        struct list_elem *e;
+        for (e = list_begin (&t->files); e != list_end (&t->files);
+          e = list_next (e))
+          {
+            struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+            if(fmp->fd == *fd)
+            {
+              retval = file_read(fmp->file, *raw, *size);
+              break;
+            }
+          }
+      }
+      f->eax = retval;
       break;
     }
     //----------------------------------------------
@@ -550,18 +587,78 @@ syscall_handler (struct intr_frame *f)
         struct list_elem *e;
         struct thread* t = thread_current();
         
-        
+        /*
+        This implementation of a doubly linked list does not require
+   use of dynamically allocated memory.  Instead, each structure
+   that is a potential list element must embed a struct list_elem
+   member.  All of the list functions operate on these `struct
+   list_elem's.  The list_entry macro allows conversion from a
+   struct list_elem back to a structure object that contains it.
+
+   For example, suppose there is a needed for a list of `struct
+   foo'.  `struct foo' should contain a `struct list_elem'
+   member, like so:
+
+      struct foo
+        {
+          struct list_elem elem;
+          int bar;
+          ...other members...
+        };
+
+   Then a list of `struct foo' can be be declared and initialized
+   like so:
+
+      struct list foo_list;
+
+      list_init (&foo_list);
+
+   Iteration is a typical situation where it is necessary to
+   convert from a struct list_elem back to its enclosing
+   structure.  Here's an example using foo_list:
+
+      struct list_elem *e;
+
+      for (e = list_begin (&foo_list); e != list_end (&foo_list);
+           e = list_next (e))
+        {
+          struct foo *f = list_entry (e, struct foo, elem);
+          ...do something with f...
+        }
+*/
+/* Converts pointer to list element LIST_ELEM into a pointer to
+   the structure that LIST_ELEM is embedded inside.  Supply the
+   name of the outer structure STRUCT and the member name MEMBER
+   of the list element.  See the big comment at the top of the
+   file for an example. */
         for (e = list_begin (&t->files); e != list_end (&t->files);
           e = list_next (e))
           {
             struct file_map *fmp = list_entry (e, struct file_map, file_elem);
             if(fmp->fd == *fd)
             {
+              //If we do hit
+              /*
+                Writes SIZE bytes from BUFFER into FILE,
+                  starting at the file's current position.
+                  Returns the number of bytes actually written,
+                  which may be less than SIZE if end of file is reached.
+                  (Normally we'd grow the file in that case, but file growth is
+                  not yet implemented.)
+                  Advances FILE's position by the number of bytes read. 
+              
+                off_t
+                file_write (struct file *file, const void *buffer, off_t size) 
+                {
+                  off_t bytes_written = inode_write_at (file->inode, buffer, size, file->pos);
+                  file->pos += bytes_written;
+                  return bytes_written;
+                }
+              */
               retval = file_write(fmp->file, *raw, *size);
               break;
             }
           }
-
       }
       //Remember the the eax register is for the 32 bit 
       f->eax = retval;
