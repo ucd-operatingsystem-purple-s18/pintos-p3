@@ -409,15 +409,26 @@ lock_init (struct lock *lock)
   //-----------------------------------------------------------
   //-----------------------------------------------------------
   //-----------------------------------------------------------
-  sema_up(&data->load_sema);
+  //sema_up(&data->load_sema);
   // If load failed, quit. 
   //-----------------------------------------------------------
   //palloc_free_page(file_name);
   //if (!success)
   //palloc_free_page(data);
 
-  if(!data->load_success) 
+  //We are too simple, exiting without finishing our sema progression
+  //if(!data->load_success)
+  //  data = struct --> load_success boolean attribute in struct
+  //      verifying that we actually loaded the struct.
+  if(!data->load_success)
+  {
+    share->exit_code = -1;
+    //push through semaphore
+    sema_up(&data->load_sema);
     thread_exit();
+  } else {
+    sema_up(&data->load_sema);
+  }
     //-----------------------------------------------------------
 
   /* Start the user process by simulating a return from an
