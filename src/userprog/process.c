@@ -415,7 +415,6 @@ lock_init (struct lock *lock)
   //palloc_free_page(file_name);
   //if (!success)
   //palloc_free_page(data);
-
   //We are too simple, exiting without finishing our sema progression
   //if(!data->load_success)
   //  data = struct --> load_success boolean attribute in struct
@@ -426,7 +425,7 @@ lock_init (struct lock *lock)
     //push through semaphore
     sema_up(&data->load_sema);
     thread_exit();
-  } else {
+  }else{
     sema_up(&data->load_sema);
   }
     //-----------------------------------------------------------

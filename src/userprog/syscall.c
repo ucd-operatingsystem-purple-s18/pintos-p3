@@ -142,7 +142,7 @@ syscall_handler (struct intr_frame *f)
   3.3.4 System Calls
     Implement the system call handler in ‘userprog/syscall.c’. The skeleton implementation
     we provide “handles” system calls by terminating the process. It will need to retrieve the
-    system call number, then any system call arguments, and carry out appropriate actions.
+    system call number, then any system call arguments, and carry out appropriateead actions.
     Implement the following system calls. The prototypes listed are those seen by a user
     program that includes ‘lib/user/syscall.h’. (This header, and all others in ‘lib/user’,
     are for use by user programs only.) System call numbers for each system call are defined in
@@ -497,7 +497,11 @@ syscall_handler (struct intr_frame *f)
       int *fd = (int *) (f->esp + 4);
       char **raw = (char **) (f->esp + 8);
       unsigned *size = (unsigned *) (f->esp + 12);
-      int retval;
+
+      //---------------i think -needwe need to initialize retval
+      //  we drop right into our pointer
+      int retval = 0;
+      //-----------------
       validate_theStackAddress(fd);
       validate_theStackAddress(raw);
       validate_theStackAddress(size);
@@ -683,8 +687,35 @@ syscall_handler (struct intr_frame *f)
     case SYS_SEEK: 
     {
       //printf("syscall.c ==> SYS_SEEK!\n");
-
-      break;
+      //start the check with our base address
+      int *fd = (int *) (f->esp + 4);
+      //we alraedy have before, but be safe and check
+      validate_theStackAddress(fd);
+      //we have to distinguish our target position
+      unsigned *pos = (unsigned *) (f->esp + 8);
+      //be safe and check for it
+      validate_theStackAddress(pos);
+      //create and apply our thread
+      struct thread *t = thread_current();
+          /* Converts pointer to list element LIST_ELEM into a pointer to
+      the structure that LIST_ELEM is embedded inside.  Supply the
+      name of the outer structure STRUCT and the member name MEMBER
+      of the list element.  See the big comment at the top of the
+      file for an example. */
+      struct list_elem *e;
+      //clearly we have our list list. push thorugh so we can check to match that base location
+      for (e = list_begin(&t->files); e != list_end(&t->files); e = list_next(e))
+      {
+        //use the list entry funciton to establish our local map
+        struct file_map *fmp = list_entry(e, struct file_map, file_elem);
+        //we are gonna make sure to match the target base with the mapped location
+        if(fmp->fd == *fd)
+        {
+            file_seek(fmp->file, *pos);
+            break;
+        }
+      }
+      break;    
     }
     //----------------------------------------------
     //----------------------------------------------
