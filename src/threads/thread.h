@@ -156,6 +156,9 @@ struct file_map
   struct list_elem file_elem;           /* Allows the file to be an element in a list. */
 };
 //===================================
+//setup for us to be able to implement the lock on the file
+struct lock file_lock;
+//===================================
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
