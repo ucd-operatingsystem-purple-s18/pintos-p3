@@ -689,10 +689,10 @@ void exit(int exit_code)
   t->parent_share->exit_code = exit_code;
   //t->parent_share->reference_count -= 1;
   //t->parent_share->ref_count -= 1;
-  char *thr_name = thread_name();
-  printf("%s: exit(%d)\n", thr_name, exit_code);
-  //sema_up(&thread_current()->wait_sema);
-  sema_up(&thread_current()->parent_share->dead_sema);
+  // char *thr_name = thread_name();
+  // printf("%s: exit(%d)\n", thr_name, exit_code);
+  // //sema_up(&thread_current()->wait_sema);
+  // sema_up(&thread_current()->parent_share->dead_sema);
   thread_exit();
 }
 
