@@ -244,15 +244,24 @@ syscall_handler (struct intr_frame *f)
       //Use our validate function to make sure this address is valid
       //is this raw address available???
       validate_theStackAddress(raw);//---------------------
-      int i = 0;//---------------------
-      do
-      {//---------------------
-      // Now we must validate that these 4 bytes hold what we are actually trying to access
-        //is this raw address available???
-        validate_theStackAddress(*raw+i);//---------------------
-        i+=4;//---------------------
-        //This while runs until we hit the end of our 4byte address
-      }while(*raw[i-4] != '\0');//---------------------
+      
+      //=============================
+      // We had this do/while, but it risks holding 
+      //    switch to a for instead of do while.
+      //int i = 0;//---------------------
+      // do
+      // {//---------------------
+      // // Now we must validate that these 4 bytes hold what we are actually trying to access
+      //   //is this raw address available???
+      //   validate_theStackAddress(*raw+i);//---------------------
+      //   i+=4;//---------------------
+      //   //This while runs until we hit the end of our 4byte address
+      // }while(*raw[i-4] != '\0');//---------------------
+      validate_theStackAddress(*raw);
+      for(int i=0; i<strlen(*raw); ++i)
+      {
+        validate_theStackAddress(*raw + i);
+      }
       //---------------------
       //printf("syscall.c ==> SYS_EXEC: %s\n", buffer);
       //is this raw address available???
@@ -264,7 +273,6 @@ syscall_handler (struct intr_frame *f)
    thread id, or TID_ERROR if the thread cannot be created. */
       f->eax = process_execute(*raw);
       //printf("after execution.\n");
-
       break;
     }
     //----------------------------------------------
@@ -335,6 +343,16 @@ syscall_handler (struct intr_frame *f)
     case SYS_CREATE: 
     {
       //printf("syscall.c ==> SYS_CREATE!\n");
+      char **raw = (char **) (f->esp+4);
+      validate_theStackAddress(raw);
+      validate_theStackAddress(*raw);
+      for(int i=0; i<strlen(*raw); ++i)
+      {
+        validate_theStackAddress(*raw + i);
+      }
+      unsigned *size = (unsigned *) (f->esp + 8);
+      validate_theStackAddress(size);
+      f->eax = filesys_create(*raw, *size);
 
       break;
     }
@@ -385,15 +403,23 @@ syscall_handler (struct intr_frame *f)
       char **raw = (char **) (f->esp + 4);
       //is this raw address available???
       validate_theStackAddress(raw);
-      int i = 0;
-      do
-      {
-      //is this raw address available???
-        validate_theStackAddress(*raw + i);
-        i+=4;
-        //remember we have a byte address, that ends in a NULL
-      }while(*raw[i-4] != '\0');
+      
+      // FORGET THE DO/WHILE, WILL GET CAUGHT
+      //    SWITCH TO FOR
+      // int i = 0;
+      // do
+      // {
+      // //is this raw address available???
+      //   validate_theStackAddress(*raw + i);
+      //   i+=4;
+      //   //remember we have a byte address, that ends in a NULL
+      // }while(*raw[i-4] != '\0');
       //return our current thread
+      validate_theStackAddress(*raw);
+      for(int i=0; i<strlen(*raw); ++i)
+      {
+        validate_theStackAddress(*raw + i);
+      }
       struct thread *t = thread_current();
       int retval;
 
@@ -472,9 +498,21 @@ syscall_handler (struct intr_frame *f)
       //printf("syscall.c ==> SYS_WRITE!\n");
       //    Fd 1 writes to the console. 
       int *fd = (int *) (f->esp + 4);
-      char *buffer = *((char **) (f->esp + 8));
-      unsigned size = *((unsigned *) (f->esp + 12));
-     // printf("Write Call!\n");
+      //char *buffer = *((char **) (f->esp + 8));
+      //unsigned size = *((unsigned *) (f->esp + 12));
+      //Dont need buffer, size need to be a pointer
+      validate_theStackAddress(fd);
+      unsigned *size = ((unsigned *) (f->esp + 12));
+      validate_theStackAddress(size);
+      char **raw = (char **) (f->esp + 8);
+      validate_theStackAddress(raw);
+      validate_theStackAddress(*raw);
+      for(int i=0; i<*size; ++i)
+      {
+        validate_theStackAddress(*raw + i);
+      }
+      
+      //printf("Write Call!\n");
       int retval = 0;
       if (*fd == 1)
       {
@@ -486,8 +524,28 @@ syscall_handler (struct intr_frame *f)
     by different processes may end up interleaved on the console, confusing both human
     readers and our grading scripts.
         */
-        putbuf(buffer, size);
-        retval = size;
+        //putbuf(buffer, size);
+        //retval = size;
+        //====changed to pointers
+        putbuf(*raw, *size);
+        retval = *size;
+      }
+      else{
+        struct list_elem *e;
+        struct thread* t = thread_current();
+        
+        
+        for (e = list_begin (&t->files); e != list_end (&t->files);
+          e = list_next (e))
+          {
+            struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+            if(fmp->fd == *fd)
+            {
+              retval = file_write(fmp->file, *raw, *size);
+              break;
+            }
+          }
+
       }
       //Remember the the eax register is for the 32 bit 
       f->eax = retval;
