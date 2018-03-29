@@ -31,7 +31,7 @@ static void
 syscall_handler (struct intr_frame *f) 
 {         
   int *sys_call_number = (int *) f->esp;
-  validate_theStackAddress(sys_call_number);
+  check_addr_valid(sys_call_number);
   /* just for clarity sake */
   int *esp = (int*)f->esp;
   /*
@@ -65,7 +65,7 @@ syscall_handler (struct intr_frame *f)
       //char *thr_name = thread_name();
       int *exit_code = (int *) (f->esp + 4);
       //is this raw address available???
-      validate_theStackAddress(exit_code);
+      check_addr_valid(exit_code);
       int retval = *exit_code;
       //printf("%s: exit(%d)\n", thr_name, *exit_code);
       f->eax = retval;
@@ -89,12 +89,12 @@ syscall_handler (struct intr_frame *f)
       // set our raw to the char at our stack pointer, + 4bytes
       char **raw = (char **) (f->esp+4);
       //Use our validate function to make sure this address is valid
-      validate_theStackAddress(raw);
+      check_addr_valid(raw);
       int i = 0;
       do
       {//---------------------
       // Now we must validate that these 4 bytes hold what we are actually trying to access
-        validate_theStackAddress(*raw+i);//---------------------
+        check_addr_valid(*raw+i);//---------------------
         i+=4;//---------------------
         //This while runs until we hit the end of our 4byte address
       }while(*raw[i-4] != '\0');//---------------------
@@ -144,7 +144,7 @@ syscall_handler (struct intr_frame *f)
     case SYS_WAIT: 
     {
       pid_t *wait_pid = ((pid_t *) (f->esp + 4));
-      validate_theStackAddress(wait_pid);
+      check_addr_valid(wait_pid);
       f->eax = process_wait(*wait_pid);
       break;
     }
@@ -158,15 +158,13 @@ syscall_handler (struct intr_frame *f)
     {
       const char *file_name = (char*)*(esp + 1);
       /* check validity of address */
-      validate_theStackAddress(file_name);
-      /* make sure a null pointer isn't getting passed */
-      if(*file_name == NULL || file_name == NULL)
-        exit(-1);
+      check_addr_valid(file_name);
 
+      /* get initial size */
       off_t initial_size = (int32_t)*(esp+2);
 
       /* create new file */
-      f->eax = filesys_create(file_name, initial_size);
+      f->eax = (bool)filesys_create(file_name, initial_size);
 
     }
 
@@ -177,9 +175,9 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_REMOVE: 
     {
-      const char *file_name = *(esp + 1);
+      const char *file_name = (char*)*(esp + 1);
       /* check validity of address */
-      validate_theStackAddress(file_name);
+      check_addr_valid(file_name);
       if(*file_name == NULL || file_name == NULL)
         exit(-1);
 
@@ -207,35 +205,30 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_OPEN: 
     {
-      char *raw = (char*)*(esp+1);
-      validate_theStackAddress(raw);
+      char *file_name = (char*)*(esp+1);
+      check_addr_valid(file_name);
 
-      /* get current runnign thread */
+      /* get current running thread */
       struct thread *t = thread_current();
       int retval;
 
-      /* Opens the file with the given NAME.
-       Returns the new file if successful or a null pointer
-       otherwise.
-       
-       Fails if no file named NAME exists,
-       or if an internal memory allocation fails. */
-      struct file *op = filesys_open(raw);
+      /* open file */
+      struct file *file = filesys_open(file_name);
       struct file_map fm;
-      if(op == NULL)
-      {
+      if(file == NULL)
         retval = -1;
-      }else{
+      else
+      {
         fm.fd = ++t->next_fd;
-        fm.file = op;
+        fm.file = file;
         list_push_back(&t->files, &fm.file_elem);
         retval = fm.fd;
       }
       f->eax = retval;
       break; 
-      }
-    /*
+    }
 
+    /*
       Returns the size, in bytes, of the file open as fd.
     */
     case SYS_FILESIZE: 
@@ -251,9 +244,9 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_READ: 
     {
-      int *fd = (int*) (f->esp + 4);
-      char *buffer = *((char **) (f->esp + 8));
-      unsigned size = *((unsigned *) (f->esp + 12));
+      int fd = (int)*(esp + 1);
+      const char* buffer = *(esp+2);
+      unsigned size = (unsigned)*(esp+3);
       break;
     }
 
@@ -272,10 +265,14 @@ syscall_handler (struct intr_frame *f)
       const  char* buffer = *(esp+2);
       unsigned size = (unsigned)*(esp+3);
       /* check validity of our stack addresses */
-      validate_theStackAddress(esp+1);
-      validate_theStackAddress(esp+2);
-      validate_theStackAddress(esp+3);
+      check_addr_valid(esp+1);
+      check_addr_valid(esp+2);
+      check_addr_valid(esp+3);
       int retval = -1; /* in case of failure */
+
+      /* if size <= 0 quit */
+      // if(size <= 0)
+      //   exit(0);
 
       /* this is special case for file in */
       if(fd == 0)
@@ -302,27 +299,27 @@ syscall_handler (struct intr_frame *f)
         /* get current thread */
         struct thread *t = thread_current();
         /* get head of current threads open file list */
-        struct file_elem *e = list_head (&t->files);
-        struct file* file;
+        struct list_elem *e;
+        struct file* file = NULL;
         struct file_map *temp;
-        do  
+        for (e = list_begin (&t->files); e != list_end (&t->files);
+              e = list_next (e))
         {
-          temp = list_entry(e, struct file_map, file_elem);
+          temp = list_entry (e, struct file_map, file_elem);
           if(temp->fd == fd)
           {
             file = temp->file;
+            /* reset pos to beginning of file */
+            file_seek(&file, 0);
             break;
           }
-        } while((e = list_next (e)) != list_end (&t->files));
-
+        }
         if(file == NULL)
           exit(-1);
         else
           /* write size bytes to file from buffer */
           retval = (int)file_write(file, buffer, size);
       }
-
-
       f->eax = retval;
       break;
     }
@@ -356,28 +353,30 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_CLOSE: 
     {
-      int  *fd = (int *) (f->esp + 4);
-      validate_theStackAddress(fd);
+      int fd = (int) *(esp+1);
+      check_addr_valid(fd);
       struct thread *t = thread_current();
-      if(*fd != 0 && *fd != 1){
+      if(fd != 0 && fd != 1)
+      {
         struct list_elem *e;
         for (e = list_begin (&t->files); e != list_end (&t->files);
           e = list_next (e))
+        {
+          struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+          if(fmp->fd == fd)
           {
-            struct file_map *fmp = list_entry (e, struct file_map, file_elem);
-            if(fmp->fd == *fd){
-              list_remove(e);
-              file_close(fmp->file);
-              break;
-            }
+            list_remove(e);
+            file_close(fmp->file);
+            break;
           }
+        }
       }
       break;    
     }
 
     default: 
     {
-      //Place the code for a bad system call number here.
+      /* bad system call */
       break;
     }
   } /* end of switch statement */
@@ -391,25 +390,23 @@ void exit(int exit_code)
   //t->parent_share->ref_count -= 1;
   char *thr_name = thread_name();
   printf("%s: exit(%d)\n", thr_name, exit_code);
-  //sema_up(&thread_current()->wait_sema);
+  
   sema_up(&thread_current()->parent_share->dead_sema);
   thread_exit();
 }
 
-// Checking to verify that the address we are sending in is valid.
-//is this raw address available???
-void validate_theStackAddress(void *addr)
+/* 
+  Checks whether a given addr is in the current processes user space. 
+  If not should return exit(-1) to signal the error
+*/
+void check_addr_valid(void *addr)
 {
-  // Remember we are working with 4 bytes.
-  for(int i = 0; i < 4; ++i)
-  {
-    if(addr + i == NULL 
-    || !is_user_vaddr(addr+i) 
-    || pagedir_get_page(thread_current()->pagedir,addr+i) == NULL)
+    if(addr == NULL 
+    || !is_user_vaddr(addr) 
+    || pagedir_get_page(thread_current()->pagedir,addr) == NULL)
     {
       exit(-1);
     }
-  }
 }
 //----------------------------------------------
 //----------------------------------------------

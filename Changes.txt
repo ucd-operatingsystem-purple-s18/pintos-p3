@@ -1,0 +1,13 @@
+Alarm Changes
+---------------------------------
+
+1. added wake_ticks to struct thread in thread.h
+2. added sleeping list to thread.c
+3. initialized sleeping_list in thread_init
+4. Added function to check if threads need to wake up 
+each tick in threads.c check_on_sleeping_threads. Used 
+in thread_ticks
+5. Added function to put thread to sleep thread_put_to_sleep
+used in timer_sleep. Created in thread.c
+6. Added function to compare two elements in sleeping list to sort
+in ascending order

@@ -24,20 +24,20 @@ main ()
         
         # Run all the following tests that are not commented out:
 
-        # test-args-none
-        # test-args-single
-        # test-args-multiple
-        # test-args-many
-        # test-args-dbl-space
+        test-args-none
+        test-args-single
+        test-args-multiple
+        test-args-many
+        test-args-dbl-space
 
-        # test-sc-bad-sp
-        # test-sc-bad-arg
-        # test-sc-boundary
-        # test-sc-boundary-2
-        # test-sc-boundary-3
+        test-sc-bad-sp
+        test-sc-bad-arg
+        test-sc-boundary
+        test-sc-boundary-2
+        test-sc-boundary-3
 
-        # test-halt
-        # test-exit
+        test-halt
+        test-exit
 
         # test-create-normal
         # test-create-empty
@@ -55,11 +55,11 @@ main ()
         # test-open-bad-ptr
         # test-open-twice
 
-  #       test-close-normal
-  #       test-close-twice
-  #       test-close-stdin
-  #       test-close-stdout
-  #       test-close-bad-fd
+        # test-close-normal
+        # test-close-twice
+        # test-close-stdin
+        # test-close-stdout
+        # test-close-bad-fd
 
         # test-read-normal
         # test-read-bad-ptr
@@ -68,12 +68,12 @@ main ()
         # test-read-stdout
         # test-read-bad-fd
 
-        test-write-normal
-        test-write-bad-ptr
-        test-write-boundary
-        test-write-zero
-        test-write-stdin
-        test-write-bad-fd
+        # test-write-normal
+        # test-write-bad-ptr
+        # test-write-boundary
+        # test-write-zero
+        # test-write-stdin
+        # test-write-bad-fd
 
   #       test-exec-once
   #       test-exec-arg
