@@ -49,9 +49,15 @@ element of the frame’s stack pointer (f->esp), and determine the type of sysca
 can get the syscall code by doing the following: 
 int sys_code = (int )f->esp;
 */
+//--------------------
+// we need to establish a data struct for our file lock that is global
+//static struct lock file_lock;
+//struct lock file_lock;
+//------------------
 void
 syscall_init (void) 
 {
+
   /*
 Function: 
 void intr_register_int (uint8_t vec, int dpl, enum intr_level level, intr_handler_func *handler, const char *name)
@@ -75,6 +81,14 @@ Remember that syscalls are implemented only in kernel, not in userland.
         indirectly e.g. an invalid memory reference will cause a page fault regardless of dpl.
 */ 
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+    //----------------
+  //==============
+  //==============
+  //==============
+  //==============
+  //on hold
+  //lock_init(&file_lock); //establish the file lock
+  //----------------
 }
 
 static void
@@ -343,16 +357,39 @@ syscall_handler (struct intr_frame *f)
     case SYS_CREATE: 
     {
       //printf("syscall.c ==> SYS_CREATE!\n");
+      //global lock ability
+      //==============
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_acquire(&file_lock);
+      //remember to place our base pointer
       char **raw = (char **) (f->esp+4);
+      //verify that the base and results of the base are valid
       validate_theStackAddress(raw);
       validate_theStackAddress(*raw);
       for(int i=0; i<strlen(*raw); ++i)
       {
+        //push past our base and verify the continuation
         validate_theStackAddress(*raw + i);
       }
       unsigned *size = (unsigned *) (f->esp + 8);
+      //we have made it here, make sure that our resulting size is valid
       validate_theStackAddress(size);
+      //establish our register
+      /* Creates a file named NAME with the given INITIAL_SIZE.
+          Returns true if successful, false otherwise.
+          Fails if a file named NAME already exists,
+          or if internal memory allocation fails. */
       f->eax = filesys_create(*raw, *size);
+
+      //brought down to here. successful so make sure we release the lock
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_release(&file_lock);
 
       break;
     }
@@ -420,6 +457,12 @@ syscall_handler (struct intr_frame *f)
       {
         validate_theStackAddress(*raw + i);
       }
+      //global lock ability
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_acquire(&file_lock);
       struct thread *t = thread_current();
       int retval;
 
@@ -441,6 +484,13 @@ syscall_handler (struct intr_frame *f)
         retval = fm.fd;
       }
       f->eax = retval;
+
+      //brought down to here. successful so make sure we release the lock
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_release(&file_lock);
       break; 
       }
     //----------------------------------------------
@@ -464,6 +514,12 @@ syscall_handler (struct intr_frame *f)
       //state our struct containing a previous and next pointer:
       struct list_elem *e;
       int retval = -1;
+      //global lock ability
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_acquire(&file_lock);
       //roll through our list 
       //    we are testing
       for (e = list_begin (&t->files); e != list_end (&t->files);
@@ -477,6 +533,12 @@ syscall_handler (struct intr_frame *f)
               break;
             }
         }
+      //brought down to here. successful so make sure we release the lock
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_release(&file_lock);
       break;
     }
     //----------------------------------------------
@@ -509,7 +571,12 @@ syscall_handler (struct intr_frame *f)
       {
         validate_theStackAddress(*raw + i);
       }
-
+      //global lock ability
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_acquire(&file_lock);
       if(*fd == 0)
       {
         for(int i = 0; i < *size; ++i)
@@ -532,6 +599,13 @@ syscall_handler (struct intr_frame *f)
           }
       }
       f->eax = retval;
+      
+      //brought down to here. successful so make sure we release the lock
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_release(&file_lock);
       break;
     }
     //----------------------------------------------
@@ -568,7 +642,12 @@ syscall_handler (struct intr_frame *f)
       {
         validate_theStackAddress(*raw + i);
       }
-      
+      //global lock ability
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_acquire(&file_lock);
       //printf("Write Call!\n");
       int retval = 0;
       if (*fd == 1)
@@ -660,12 +739,20 @@ syscall_handler (struct intr_frame *f)
                 }
               */
               retval = file_write(fmp->file, *raw, *size);
+              
               break;
             }
           }
       }
       //Remember the the eax register is for the 32 bit 
       f->eax = retval;
+      
+      //brought down to here. successful so make sure we release the lock
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_release(&file_lock);
       break;
     }
     //----------------------------------------------
@@ -703,6 +790,12 @@ syscall_handler (struct intr_frame *f)
       of the list element.  See the big comment at the top of the
       file for an example. */
       struct list_elem *e;
+      //global lock ability
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_acquire(&file_lock);
       //clearly we have our list list. push thorugh so we can check to match that base location
       for (e = list_begin(&t->files); e != list_end(&t->files); e = list_next(e))
       {
@@ -715,6 +808,13 @@ syscall_handler (struct intr_frame *f)
             break;
         }
       }
+      
+      //brought down to here. successful so make sure we release the lock
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_release(&file_lock);
       break;    
     }
     //----------------------------------------------
@@ -744,11 +844,17 @@ syscall_handler (struct intr_frame *f)
       //create and apply our thread
       struct list_elem *e;
       int retval = 0;
+      //global lock ability
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_acquire(&file_lock);
       //------1
       //clearly we have our list list. push thorugh so we can check to match that base location
       for (e = list_begin (&t->files); e != list_end (&t->files); e = list_next (e))
       {
-        //------2
+        //------2atic void 
         //use the list entry funciton to establish our local map
         struct file_map *fmp = list_entry (e, struct file_map, file_elem);
         //we are gonna make sure to match the target base with the mapped location
@@ -761,6 +867,13 @@ syscall_handler (struct intr_frame *f)
 
       f->eax = retval;
       //neebd to establish our closed register if we do not find our target
+      
+      //brought down to here. successful so make sure we release the lock
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_release(&file_lock);
       break;
     }
     //----------------------------------------------
@@ -781,23 +894,32 @@ syscall_handler (struct intr_frame *f)
       //is this raw address available???
       validate_theStackAddress(fd);
       struct thread *t = thread_current();
+      //global lock ability
+      //lock_acquire(&file_lock);
       if(*fd != 0 && *fd != 1)
       {
         //Each list element is a struct containing a previous and next pointer:
         struct list_elem *e;
-        for (e = list_begin (&t->files); e != list_end (&t->files);
-          e = list_next (e))
+        for (e = list_begin (&t->files); e != list_end (&t->files); e = list_next (e))
+        {
+          struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+          if(fmp->fd == *fd)
           {
-            struct file_map *fmp = list_entry (e, struct file_map, file_elem);
-            if(fmp->fd == *fd)
-            {
-              list_remove(e);
-              file_close(fmp->file);
-              break;
-            }
+            list_remove(e);
+            file_close(fmp->file);
+            break;
           }
+        }
       }
-      break;    }
+      
+      //brought down to here. successful so make sure we release the lock
+      //==============
+      //==============
+      //==============
+      //on hold
+      //lock_release(&file_lock);
+      break;    
+    }
     //----------------------------------------------
     //----------------------------------------------
     //----------------------------------------------

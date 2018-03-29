@@ -528,6 +528,27 @@ void process_exit (void)
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
+  //=====================
+  //=====================
+  //=====================
+  //=====================
+  //=====================
+  //=====================
+  //this times out. oom doesnt pass if it is gone
+  //    while here, it tries and holds for 361 seconds.
+      // =========
+    // =========
+    // =========
+    // =========
+    //on hold
+  //file_close(cur->executable); //establish an end
+  //=====================
+  //=====================
+  //=====================
+  //=====================
+  //=====================
+  //=====================
+  //---------------------------
   pd = cur->pagedir;
   if (pd != NULL) 
     {
@@ -679,11 +700,26 @@ load (const char *file_name, void (**eip) (void), void **esp)
   //file = filesys_open (file_name);
   file = filesys_open(exec_name);
   if (file == NULL) 
-    {
-      //printf ("load: %s: open failed\n", file_name);
-      printf ("load: %s: open failed\n", exec_name);
-      goto done; 
-    }
+  {
+    //printf ("load: %s: open failed\n", file_name);
+    printf ("load: %s: open failed\n", exec_name);
+    goto done; 
+  } 
+  
+  
+  
+  
+  //else {
+    //remember we are trying to establish a global close
+    //    don't let a process continue past the if
+        // =========
+    // =========
+    // =========
+    // =========
+    // on hold
+    //file_deny_write(file); //shift positions for deny, we had close it too late 
+  //}
+  //t->executable = file;
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -769,18 +805,25 @@ load (const char *file_name, void (**eip) (void), void **esp)
   */
   //=======================================
   if (!setup_stack(esp, args_ptr))
+  {
+    goto done;
+  }
   //make sure to account for if we 
   //=======================================
-    goto done;
+    
 
   /* Start address. */
   *eip = (void(*)(void))ehdr.e_entry;
-
   success = true;
 
- done:
+  done:
   /* We arrive here whether the load is successful or not. */
   //file_deny_write(file);
+      // =========
+    // =========
+    // =========
+    // =========
+  // on hold
   file_close(file);
   return success;
 }

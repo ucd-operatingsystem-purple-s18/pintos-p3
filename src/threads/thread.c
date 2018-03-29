@@ -95,7 +95,7 @@ thread_init (void)
 
   //===============================
   //pushing for seek, will need a lock on the files.
-  lock_init(&file_lock);
+  lock_init(&file_lock); // we should go global. This is too localized
   //===============================
 
   /* Set up a thread structure for the running thread. */

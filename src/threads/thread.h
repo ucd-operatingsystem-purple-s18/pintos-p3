@@ -97,7 +97,18 @@ struct thread
     struct list children; //list to hold all the child processes of this process
     struct list files; //list to hold all the open files fo this process
     struct shared_data *parent_share; //pointer to hold the data shared with this process parent (should only be one)
-
+    // =========================
+    // =========
+    // =========
+    // =========
+    // =========
+    //should put one in to hold the executable file for the process
+    //    on hold
+    //struct file *executable;
+    // =========
+    // =========
+    // =========
+    // =========
     //-----------------------
     struct list_elem allelem;           /* List element for all threads list. */
     //=================
@@ -157,7 +168,7 @@ struct file_map
 };
 //===================================
 //setup for us to be able to implement the lock on the file
-struct lock file_lock;
+struct lock file_lock; // we should go global. This is too localized
 //===================================
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
