@@ -693,7 +693,7 @@ syscall_handler (struct intr_frame *f)
       validate_theStackAddress(fd);
       //we have to distinguish our target position
       unsigned *pos = (unsigned *) (f->esp + 8);
-      //be safe and check for it
+       //be safe and check for it
       validate_theStackAddress(pos);
       //create and apply our thread
       struct thread *t = thread_current();
@@ -732,6 +732,35 @@ syscall_handler (struct intr_frame *f)
     {
       //printf("syscall.c ==> SYS_TELL!\n");
 
+      //remember this isnt a copy of SYS_SEEK but our concept is 99% the same. 
+      //  make sure that we don't cross and overlap them due to oversight. DOUBLECHECK
+      int *fd = (int *) (f->esp + 4);
+      //start the check with our base address
+      //we alraedy have before, but be safe and check
+      validate_theStackAddress(fd);
+      struct thread *t = thread_current();
+      //we have to distinguish our target position
+      //be safe and check for it
+      //create and apply our thread
+      struct list_elem *e;
+      int retval = 0;
+      //------1
+      //clearly we have our list list. push thorugh so we can check to match that base location
+      for (e = list_begin (&t->files); e != list_end (&t->files); e = list_next (e))
+      {
+        //------2
+        //use the list entry funciton to establish our local map
+        struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+        //we are gonna make sure to match the target base with the mapped location
+        if(fmp->fd == *fd)
+        {
+            retval = file_tell(fmp->file);
+            break;
+        }//------2
+      }//------1
+
+      f->eax = retval;
+      //neebd to establish our closed register if we do not find our target
       break;
     }
     //----------------------------------------------
