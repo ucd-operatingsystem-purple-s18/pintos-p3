@@ -30,14 +30,14 @@ main ()
         test-args-many
         test-args-dbl-space
 
-        test-sc-bad-sp
-        test-sc-bad-arg
-        test-sc-boundary
-        test-sc-boundary-2
-        test-sc-boundary-3
+        # test-sc-bad-sp
+        # test-sc-bad-arg
+        # test-sc-boundary
+        # test-sc-boundary-2
+        # test-sc-boundary-3
 
-        test-halt
-        test-exit
+        # test-halt
+        # test-exit
 
         # test-create-normal
         # test-create-empty
@@ -75,33 +75,33 @@ main ()
         # test-write-stdin
         # test-write-bad-fd
 
-  #       test-exec-once
-  #       test-exec-arg
-  #       test-exec-bound
-  #       test-exec-bound-2
-  #       test-exec-bound
-  #       test-exec-multiple
-  #       test-exec-missing
-  #       test-exec-bad-ptr
+        # test-exec-once
+        # test-exec-arg
+        # test-exec-bound
+        # test-exec-bound-2
+        # test-exec-bound
+        # test-exec-multiple
+        # test-exec-missing
+        # test-exec-bad-ptr
 
-  #       test-wait-simple
-  #       test-wait-twice
-  #       test-wait-killed
-  #       test-wait-bad-pid
+        # test-wait-simple
+        # test-wait-twice
+        # test-wait-killed
+        # test-wait-bad-pid
 
-  #       test-multi-recurse
-  #       test-multi-child-fd
+        # test-multi-recurse
+        # test-multi-child-fd
 
-  #       test-rox-simple
-  #       test-rox-child
-  #       test-rox-multichild
+        # test-rox-simple
+        # test-rox-child
+        # test-rox-multichild
 
-  #       test-bad-read
-  #       test-bad-write
-  #       test-bad-read2
-  #       test-bad-write2
-  #       test-bad-jump
-  #       test-bad-jump2
+        # test-bad-read
+        # test-bad-write
+        # test-bad-read2
+        # test-bad-write2
+        # test-bad-jump
+        # test-bad-jump2
 
   #       test-multi-oom
 

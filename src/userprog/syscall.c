@@ -19,6 +19,7 @@
 
 
 static void syscall_handler (struct intr_frame *);
+struct list_elem *get_list_elem(int fd);
 
 void
 syscall_init (void) 
@@ -29,11 +30,13 @@ syscall_init (void)
 static void
 //syscall_handler (struct intr_frame *f UNUSED)
 syscall_handler (struct intr_frame *f) 
-{         
-  int *sys_call_number = (int *) f->esp;
-  check_addr_valid(sys_call_number);
+{
   /* just for clarity sake */
   int *esp = (int*)f->esp;
+
+  check_addr_valid(esp);  
+
+  int *sys_call_number = (int *) f->esp;
   /*
     Remem:
     system call number is passed int he %eax register (32 bit)
@@ -61,18 +64,11 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_EXIT: 
     {
-      //printf("syscall.c ==> SYS_EXIT!\n");
-      //char *thr_name = thread_name();
-      int *exit_code = (int *) (f->esp + 4);
-      //is this raw address available???
-      check_addr_valid(exit_code);
-      int retval = *exit_code;
-      //printf("%s: exit(%d)\n", thr_name, *exit_code);
+      check_addr_valid(esp+1);
+      int exit_code = (int) *(esp+1);
+      int retval = exit_code;
       f->eax = retval;
-      //sema_up(&thread_current()->wait_sema);
-      //thread_exit();
       exit(retval);
-      
       break;
     }
 
@@ -86,24 +82,17 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_EXEC: 
     {
-      // set our raw to the char at our stack pointer, + 4bytes
-      char **raw = (char **) (f->esp+4);
-      //Use our validate function to make sure this address is valid
-      check_addr_valid(raw);
-      int i = 0;
-      do
-      {//---------------------
-      // Now we must validate that these 4 bytes hold what we are actually trying to access
-        check_addr_valid(*raw+i);//---------------------
-        i+=4;//---------------------
-        //This while runs until we hit the end of our 4byte address
-      }while(*raw[i-4] != '\0');//---------------------
+      check_addr_valid(esp+1);
+      check_addr_valid(*(esp+1));
+      // set our raw to the char at our stack pointer
+      const char *raw = (char *) *(esp+1);
       /* Starts a new thread running a user program loaded from
        FILENAME.  The new thread may be scheduled (and may even exit)
        before process_execute() returns.  Returns the new process's
        thread id, or TID_ERROR if the thread cannot be created. */
-      f->eax = process_execute(*raw);
-      //printf("after execution.\n");
+      
+      f->eax = process_execute(raw);
+      
 
       break;
     }
@@ -143,9 +132,9 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_WAIT: 
     {
-      pid_t *wait_pid = ((pid_t *) (f->esp + 4));
-      check_addr_valid(wait_pid);
-      f->eax = process_wait(*wait_pid);
+      check_addr_valid(esp+1);
+      pid_t wait_pid = ((pid_t )*(esp+1));
+      f->eax = process_wait(wait_pid);
       break;
     }
 
@@ -156,15 +145,20 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_CREATE: 
     {
-      const char *file_name = (char*)*(esp + 1);
       /* check validity of address */
-      check_addr_valid(file_name);
+      check_addr_valid(esp+1);
+      check_addr_valid(*(esp+1));
+      check_addr_valid(esp+2);
+
+      const char *file_name = (char*)*(esp + 1);
 
       /* get initial size */
       off_t initial_size = (int32_t)*(esp+2);
 
       /* create new file */
+      
       f->eax = (bool)filesys_create(file_name, initial_size);
+      
 
     }
 
@@ -175,14 +169,15 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_REMOVE: 
     {
-      const char *file_name = (char*)*(esp + 1);
       /* check validity of address */
-      check_addr_valid(file_name);
-      if(*file_name == NULL || file_name == NULL)
-        exit(-1);
+      check_addr_valid(esp+1);
+      check_addr_valid(*(esp+1));
+      const char *file_name = (char*)*(esp + 1);
 
       /* remove file from directory */
+      
       f->eax = filesys_remove(file_name);
+      
 
       break;
     }
@@ -205,15 +200,18 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_OPEN: 
     {
-      char *file_name = (char*)*(esp+1);
-      check_addr_valid(file_name);
+      check_addr_valid(esp+1);
+      check_addr_valid(*(esp+1));
+      const char *file_name = (char*)*(esp+1);
 
       /* get current running thread */
       struct thread *t = thread_current();
       int retval;
 
       /* open file */
+      
       struct file *file = filesys_open(file_name);
+      
       struct file_map fm;
       if(file == NULL)
         retval = -1;
@@ -233,7 +231,19 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_FILESIZE: 
     {
-
+      check_addr_valid(esp+1);
+      int fd = (int)*(esp+1);
+      int filesize = 0;
+      int retval = 0;
+      struct list_elem *e = get_list_elem(fd);
+      if(e != NULL)
+      {
+        
+        struct file_map *temp = list_entry(e, struct file_map, file_elem);
+        retval = (int)file_length(temp->file);
+        
+      }
+      f->eax = retval;
       break;
     }
 
@@ -244,9 +254,33 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_READ: 
     {
+      check_addr_valid(esp+1);
+      check_addr_valid(esp+2);
+      check_addr_valid(esp+3);
+      check_addr_valid(*(esp+2));
       int fd = (int)*(esp + 1);
-      const char* buffer = *(esp+2);
+      void * buffer = *(esp+2);
       unsigned size = (unsigned)*(esp+3);
+      int retval = -1;
+
+      if(fd == 0)
+      {
+
+      }
+      else if(fd == 1)
+        retval = -1;
+      else
+      {
+        struct list_elem *e = get_list_elem(fd);
+        if(e != NULL)
+        {
+          
+          struct file_map *temp = list_entry(e, struct file_map, file_elem);
+          retval = file_read(temp->file, buffer, size);
+          
+        }
+      }
+      f->eax = retval;
       break;
     }
 
@@ -257,69 +291,40 @@ syscall_handler (struct intr_frame *f)
       mented by the basic file system. The expected behavior is to write as many bytes as
       possible up to end-of-file and return the actual number written, or 0 if no bytes could
       be written at all.
-
     */
     case SYS_WRITE: 
     {
-      int fd = (int)*(esp + 1);
-      const  char* buffer = *(esp+2);
-      unsigned size = (unsigned)*(esp+3);
       /* check validity of our stack addresses */
       check_addr_valid(esp+1);
       check_addr_valid(esp+2);
       check_addr_valid(esp+3);
+      check_addr_valid(*(esp+2));
+      int fd = (int)*(esp + 1);
+      const void* buffer = *(esp+2);
+      unsigned size = (unsigned)*(esp+3);
       int retval = -1; /* in case of failure */
 
-      /* if size <= 0 quit */
-      // if(size <= 0)
-      //   exit(0);
-
-      /* this is special case for file in */
       if(fd == 0)
-        exit(-1);
-
+        retval = -1;
       /* write to console 100 bytes at a time */
       else if (fd == 1)
       {
-        unsigned tempsize = 0;
-        while(tempsize < size)
-        {
-          if(tempsize + 100 > size)
-            putbuf(buffer+tempsize, size - tempsize);
-          else
-            putbuf(buffer+tempsize, 100);
-          tempsize += 100;
-        }
+        
+        putbuf(buffer, size);
+        
         retval = size;
       }
-
       /* write to file */
       else
       {
-        /* get current thread */
-        struct thread *t = thread_current();
-        /* get head of current threads open file list */
-        struct list_elem *e;
-        struct file* file = NULL;
-        struct file_map *temp;
-        for (e = list_begin (&t->files); e != list_end (&t->files);
-              e = list_next (e))
+        struct list_elem *e = get_list_elem(fd);
+        if(e != NULL) 
         {
-          temp = list_entry (e, struct file_map, file_elem);
-          if(temp->fd == fd)
-          {
-            file = temp->file;
-            /* reset pos to beginning of file */
-            file_seek(&file, 0);
-            break;
-          }
+          struct file_map *temp = list_entry(e, struct file_map, file_elem);
+          
+          retval = file_write(temp->file, buffer, size);
+                }
         }
-        if(file == NULL)
-          exit(-1);
-        else
-          /* write size bytes to file from buffer */
-          retval = (int)file_write(file, buffer, size);
-      }
       f->eax = retval;
       break;
     }
@@ -336,6 +341,20 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_SEEK: 
     {
+      check_addr_valid(esp+1);
+      check_addr_valid(esp+2);
+      int fd = (int)*(esp+1);
+      unsigned position = (unsigned)*(esp+2);
+
+      /* get list element */
+      struct list_elem *e = get_list_elem(fd);
+      if(e != NULL)
+      {
+        struct file_map *fmp = list_entry(e, struct file_map, file_elem);
+        
+        file_seek(fmp->file, position);
+        
+      }
       break;
     }
 
@@ -345,6 +364,20 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_TELL: 
     {
+      check_addr_valid(esp+1);
+
+      int fd = (int)*(esp+1);
+
+      struct list_elem *e = get_list_elem(fd);
+      if(e != NULL)
+      {
+        struct file_map *fmp = list_entry(e, struct file_map, file_elem);
+        
+        f->eax = file_tell(fmp->file);
+        
+      }
+      else
+        f->eax = 0;
       break;
     }
     /*
@@ -353,23 +386,19 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_CLOSE: 
     {
+      check_addr_valid(esp+1);
+
       int fd = (int) *(esp+1);
-      check_addr_valid(fd);
-      struct thread *t = thread_current();
-      if(fd != 0 && fd != 1)
+
+      /* get list element */
+      struct list_elem* e = get_list_elem(fd);
+      if(e != NULL)
       {
-        struct list_elem *e;
-        for (e = list_begin (&t->files); e != list_end (&t->files);
-          e = list_next (e))
-        {
-          struct file_map *fmp = list_entry (e, struct file_map, file_elem);
-          if(fmp->fd == fd)
-          {
-            list_remove(e);
-            file_close(fmp->file);
-            break;
-          }
-        }
+        struct file_map* fmp = list_entry(e, struct file_map, file_elem);
+        
+        file_close(fmp->file);
+        list_remove(e);
+        
       }
       break;    
     }
@@ -382,7 +411,8 @@ syscall_handler (struct intr_frame *f)
   } /* end of switch statement */
 }
 
-void exit(int exit_code)
+void 
+exit(int exit_code)
 {
   struct thread *t = thread_current();
   t->parent_share->exit_code = exit_code;
@@ -399,14 +429,34 @@ void exit(int exit_code)
   Checks whether a given addr is in the current processes user space. 
   If not should return exit(-1) to signal the error
 */
-void check_addr_valid(void *addr)
+void 
+check_addr_valid(void *addr)
 {
-    if(addr == NULL 
-    || !is_user_vaddr(addr) 
-    || pagedir_get_page(thread_current()->pagedir,addr) == NULL)
+  for(int i = 0; i < 4; i++)
+  {
+    if((addr+i) == NULL || !is_user_vaddr(addr+i) ||
+      pagedir_get_page(thread_current()->pagedir,(addr+i)) == NULL)
     {
       exit(-1);
     }
+  }
 }
-//----------------------------------------------
-//----------------------------------------------
+
+/*
+  Returns a struct file_map * object for given fd. Returns null
+  if fd failed to be found
+*/
+struct list_elem
+*get_list_elem(int fd)
+{
+  struct thread *t = thread_current();
+  struct list_elem *e;
+  for (e = list_begin (&t->files); e != list_end (&t->files);
+      e = list_next (e))
+  {
+    struct file_map *fmp = list_entry (e, struct file_map, file_elem);
+    if(fmp->fd == fd)
+      return e;
+  }
+  return NULL;
+}
