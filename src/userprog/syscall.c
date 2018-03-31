@@ -31,21 +31,14 @@ static void
 //syscall_handler (struct intr_frame *f UNUSED)
 syscall_handler (struct intr_frame *f) 
 {
+  check_addr_valid(f->esp);  
   /* just for clarity sake */
   int *esp = (int*)f->esp;
-
-  check_addr_valid(esp);  
-
   int *sys_call_number = (int *) f->esp;
-  /*
-    Remem:
-    system call number is passed int he %eax register (32 bit)
-        This is to distinguish which syscall to invoke
-    alltrap() saves it along with all other registers (dont understand alltrap???)
-  */
   switch(*sys_call_number)
   {
     /*
+      void halt (void)
       Terminates Pintos by calling shutdown_power_off() 
       (declared in ‘devices/shutdown.h’). This should be seldom used, 
       because you lose some information about possible deadlock 
@@ -58,6 +51,7 @@ syscall_handler (struct intr_frame *f)
     }
 
     /*
+      void exit (int status)
       Terminates the current user program, returning status to the kernel. If the process’s
       parent waits for it (see below), this is the status that will be returned. Conventionally,
       a status of 0 indicates success and nonzero values indicate errors.
@@ -65,14 +59,13 @@ syscall_handler (struct intr_frame *f)
     case SYS_EXIT: 
     {
       check_addr_valid(esp+1);
-      int exit_code = (int) *(esp+1);
-      int retval = exit_code;
-      f->eax = retval;
-      exit(retval);
+      int status = (int) *(esp+1);
+      exit(status);
       break;
     }
 
     /*
+      pid_t exec (const char *cmd_line)
       Runs the executable whose name is given in cmd line, passing any given arguments,
       and returns the new process’s program id (pid). Must return pid -1, which otherwise
       should not be a valid pid, if the program cannot load or run for any reason. Thus,
@@ -84,20 +77,15 @@ syscall_handler (struct intr_frame *f)
     {
       check_addr_valid(esp+1);
       check_addr_valid(*(esp+1));
-      // set our raw to the char at our stack pointer
-      const char *raw = (char *) *(esp+1);
-      /* Starts a new thread running a user program loaded from
-       FILENAME.  The new thread may be scheduled (and may even exit)
-       before process_execute() returns.  Returns the new process's
-       thread id, or TID_ERROR if the thread cannot be created. */
-      
-      f->eax = process_execute(raw);
+      const char *cmd_line = (char *) *(esp+1);
+      f->eax = (pid_t)process_execute(cmd_line);
       
 
       break;
     }
 
     /*
+      int wait (pid_t pid)
       Waits for a child process pid and retrieves the child’s exit status.
       If pid is still alive, waits until it terminates. Then, returns the status that pid passed
       to exit. If pid did not call exit(), but was terminated by the kernel (e.g. killed due
@@ -133,56 +121,45 @@ syscall_handler (struct intr_frame *f)
     case SYS_WAIT: 
     {
       check_addr_valid(esp+1);
-      pid_t wait_pid = ((pid_t )*(esp+1));
-      f->eax = process_wait(wait_pid);
+      pid_t pid = ((pid_t )*(esp+1));
+      f->eax = (int)process_wait(pid);
       break;
     }
 
     /*
+      bool create (const char *file, unsigned initial_size)
       Creates a new file called file initially initial size bytes in size. Returns true if suc-
       cessful, false otherwise. Creating a new file does not open it: opening the new file is
       a separate operation which would require a open system call.
     */
     case SYS_CREATE: 
     {
-      /* check validity of address */
       check_addr_valid(esp+1);
       check_addr_valid(*(esp+1));
       check_addr_valid(esp+2);
-
-      const char *file_name = (char*)*(esp + 1);
-
-      /* get initial size */
-      off_t initial_size = (int32_t)*(esp+2);
-
-      /* create new file */
-      
-      f->eax = (bool)filesys_create(file_name, initial_size);
-      
-
+      const char *file = (char*)*(esp + 1);
+      unsigned initial_size = (unsigned)*(esp+2);
+      f->eax = (bool)filesys_create(file, initial_size);
+      break;
     }
 
     /*
+      bool remove (const char *file)
       Deletes the file called file. Returns true if successful, false otherwise. A file may be
       removed regardless of whether it is open or closed, and removing an open file does
       not close it. See [Removing an Open File], page 35, for details.
     */
     case SYS_REMOVE: 
     {
-      /* check validity of address */
       check_addr_valid(esp+1);
       check_addr_valid(*(esp+1));
-      const char *file_name = (char*)*(esp + 1);
-
-      /* remove file from directory */
-      
-      f->eax = filesys_remove(file_name);
-      
-
+      const char *file = (char*)*(esp + 1);
+      f->eax = (bool)filesys_remove(file);
       break;
     }
 
     /*
+      int open (const char *file)
       Opens the file called file. Returns a nonnegative integer handle called a “file descrip-
       tor” (fd), or -1 if the file could not be opened.
       File descriptors numbered 0 and 1 are reserved for the console: fd 0 (STDIN_FILENO) is
@@ -202,23 +179,17 @@ syscall_handler (struct intr_frame *f)
     {
       check_addr_valid(esp+1);
       check_addr_valid(*(esp+1));
-      const char *file_name = (char*)*(esp+1);
-
-      /* get current running thread */
+      const char *file = (char*)*(esp+1);
       struct thread *t = thread_current();
       int retval;
-
-      /* open file */
-      
-      struct file *file = filesys_open(file_name);
-      
       struct file_map fm;
+      struct file *of = filesys_open(file);
       if(file == NULL)
         retval = -1;
       else
       {
         fm.fd = ++t->next_fd;
-        fm.file = file;
+        fm.file = of;
         list_push_back(&t->files, &fm.file_elem);
         retval = fm.fd;
       }
@@ -227,27 +198,26 @@ syscall_handler (struct intr_frame *f)
     }
 
     /*
+      int filesize (int fd)
       Returns the size, in bytes, of the file open as fd.
     */
     case SYS_FILESIZE: 
     {
       check_addr_valid(esp+1);
       int fd = (int)*(esp+1);
-      int filesize = 0;
       int retval = 0;
       struct list_elem *e = get_list_elem(fd);
       if(e != NULL)
       {
-        
         struct file_map *temp = list_entry(e, struct file_map, file_elem);
         retval = (int)file_length(temp->file);
-        
       }
       f->eax = retval;
       break;
     }
 
     /*
+      int read (int fd, void *buffer, unsigned size)
       Reads size bytes from the file open as fd into buffer. Returns the number of bytes
       actually read (0 at end of file), or -1 if the file could not be read (due to a condition
       other than end of file). Fd 0 reads from the keyboard using input_getc().
@@ -259,10 +229,9 @@ syscall_handler (struct intr_frame *f)
       check_addr_valid(esp+3);
       check_addr_valid(*(esp+2));
       int fd = (int)*(esp + 1);
-      void * buffer = *(esp+2);
+      void *buffer = *(esp+2);
       unsigned size = (unsigned)*(esp+3);
       int retval = -1;
-
       if(fd == 0)
       {
 
@@ -274,10 +243,8 @@ syscall_handler (struct intr_frame *f)
         struct list_elem *e = get_list_elem(fd);
         if(e != NULL)
         {
-          
           struct file_map *temp = list_entry(e, struct file_map, file_elem);
-          retval = file_read(temp->file, buffer, size);
-          
+          retval = (int)file_read(temp->file, buffer, size);
         }
       }
       f->eax = retval;
@@ -285,6 +252,7 @@ syscall_handler (struct intr_frame *f)
     }
 
     /*
+      int write (int fd, const void *buffer, unsigned size)
       Writes size bytes from buffer to the open file fd. Returns the number of bytes actually
       written, which may be less than size if some bytes could not be written.
       Writing past end-of-file would normally extend the file, but file growth is not imple-
@@ -294,43 +262,36 @@ syscall_handler (struct intr_frame *f)
     */
     case SYS_WRITE: 
     {
-      /* check validity of our stack addresses */
       check_addr_valid(esp+1);
       check_addr_valid(esp+2);
       check_addr_valid(esp+3);
       check_addr_valid(*(esp+2));
       int fd = (int)*(esp + 1);
-      const void* buffer = *(esp+2);
+      const void *buffer = *(esp+2);
       unsigned size = (unsigned)*(esp+3);
-      int retval = -1; /* in case of failure */
-
+      int retval = -1;
       if(fd == 0)
         retval = -1;
-      /* write to console 100 bytes at a time */
       else if (fd == 1)
       {
-        
-        putbuf(buffer, size);
-        
+        putbuf(buffer, size); 
         retval = size;
       }
-      /* write to file */
       else
       {
         struct list_elem *e = get_list_elem(fd);
         if(e != NULL) 
         {
           struct file_map *temp = list_entry(e, struct file_map, file_elem);
-          
-          retval = file_write(temp->file, buffer, size);
-                }
+          retval = (int)file_write(temp->file, buffer, size);
         }
+      }
       f->eax = retval;
       break;
     }
 
     /*
-
+      void seek (int fd, unsigned position)
       Changes the next byte to be read or written in open file fd to position, expressed in
       bytes from the beginning of the file. (Thus, a position of 0 is the file’s start.)
       A seek past the current end of a file is not an error. A later read obtains 0 bytes,
@@ -345,64 +306,52 @@ syscall_handler (struct intr_frame *f)
       check_addr_valid(esp+2);
       int fd = (int)*(esp+1);
       unsigned position = (unsigned)*(esp+2);
-
-      /* get list element */
       struct list_elem *e = get_list_elem(fd);
       if(e != NULL)
       {
         struct file_map *fmp = list_entry(e, struct file_map, file_elem);
-        
         file_seek(fmp->file, position);
-        
       }
       break;
     }
 
     /*
+      unsigned tell (int fd)
       Returns the position of the next byte to be read or written in open file fd, expressed
       in bytes from the beginning of the file.
     */
     case SYS_TELL: 
     {
       check_addr_valid(esp+1);
-
       int fd = (int)*(esp+1);
-
       struct list_elem *e = get_list_elem(fd);
       if(e != NULL)
       {
         struct file_map *fmp = list_entry(e, struct file_map, file_elem);
-        
-        f->eax = file_tell(fmp->file);
-        
+        f->eax = (unsigned)file_tell(fmp->file);
       }
       else
-        f->eax = 0;
+        f->eax = (unsigned)0;
       break;
     }
     /*
+      void close (int fd)
       Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open
       file descriptors, as if by calling this function for each one.
     */
     case SYS_CLOSE: 
     {
       check_addr_valid(esp+1);
-
       int fd = (int) *(esp+1);
-
-      /* get list element */
       struct list_elem* e = get_list_elem(fd);
       if(e != NULL)
       {
         struct file_map* fmp = list_entry(e, struct file_map, file_elem);
-        
         file_close(fmp->file);
         list_remove(e);
-        
       }
       break;    
     }
-
     default: 
     {
       /* bad system call */
@@ -434,8 +383,8 @@ check_addr_valid(void *addr)
 {
   for(int i = 0; i < 4; i++)
   {
-    if((addr+i) == NULL || !is_user_vaddr(addr+i) ||
-      pagedir_get_page(thread_current()->pagedir,(addr+i)) == NULL)
+    if((addr + i) == NULL || !is_user_vaddr(addr + i) ||
+        pagedir_get_page(thread_current()->pagedir,(addr + i)) == NULL)
     {
       exit(-1);
     }

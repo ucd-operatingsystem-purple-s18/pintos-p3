@@ -24,11 +24,11 @@ main ()
         
         # Run all the following tests that are not commented out:
 
-        test-args-none
-        test-args-single
-        test-args-multiple
-        test-args-many
-        test-args-dbl-space
+        # test-args-none
+        # test-args-single
+        # test-args-multiple
+        # test-args-many
+        # test-args-dbl-space
 
         # test-sc-bad-sp
         # test-sc-bad-arg
@@ -47,13 +47,13 @@ main ()
         # test-create-exists
         # test-create-bound
 
-        # test-open-normal
-        # test-open-missing
-        # test-open-boundary
-        # test-open-empty
-        # test-open-null
-        # test-open-bad-ptr
-        # test-open-twice
+        test-open-normal
+        test-open-missing
+        test-open-boundary
+        test-open-empty
+        test-open-null
+        test-open-bad-ptr
+        test-open-twice
 
         # test-close-normal
         # test-close-twice
@@ -103,23 +103,23 @@ main ()
         # test-bad-jump
         # test-bad-jump2
 
-  #       test-multi-oom
+        # test-multi-oom
 
-  #       test-lg-create
-  #       test-lg-full
-  #       test-lg-random
-  #       test-lg-seq-block
-  #       test-lg-seq-random
+        # test-lg-create
+        # test-lg-full
+        # test-lg-random
+        # test-lg-seq-block
+        # test-lg-seq-random
 
-  #       test-sm-create
-  #       test-sm-full 
-  #       test-sm-random
-  #       test-sm-seq-block 
-  #       test-sm-seq-random
+        # test-sm-create
+        # test-sm-full 
+        # test-sm-random
+        # test-sm-seq-block 
+        # test-sm-seq-random
 
-  #       test-syn-read 
-  #       test-syn-remove 
-  #       test-syn-write
+        # test-syn-read 
+        # test-syn-remove 
+        # test-syn-write
 
         
         echo -e "\n   SCRIPT EXECUTION TERMINATED SUCCESSFULLY. \n"
