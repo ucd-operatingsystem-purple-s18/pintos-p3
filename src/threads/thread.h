@@ -104,7 +104,7 @@ struct thread
     // =========
     //should put one in to hold the executable file for the process
     //    on hold
-    //struct file *executable;
+    struct file *executable;
     // =========
     // =========
     // =========
