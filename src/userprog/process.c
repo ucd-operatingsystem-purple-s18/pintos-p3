@@ -475,7 +475,10 @@ process_wait (tid_t child_tid)
       {
         sema_down(&share->dead_sema);
         list_remove(&share->child_elem);
-        return share->exit_code;
+        //return share->exit_code;
+        int exit_val = share->exit_code;
+        free(share);
+        return exit_val;
       }
   }
   //sema_down(&rt_thread->wait_sema);
@@ -509,7 +512,9 @@ void process_exit (void)
 
   // Iterate through each child in the list. If the parent outlived the child, 
   // the parent should deallocate.
-  for(int i = 0; i < list_size(&cur->children); ++i)
+  //for(int i = 0; i < list_size(&cur->children); ++i)
+  int children_size = list_size(&cur->children);
+  for(int i=0; i<children_size; ++i)
   {
     //Each list element is a struct containing a previous and next pointer:
     struct list_elem *e = list_pop_front(&cur->children);
@@ -548,6 +553,24 @@ void process_exit (void)
   //=====================
   //=====================
   //=====================
+    //=====================
+  // Iterate through each child in the list. If the parent outlived the child, 
+  // the parent should deallocate.
+  for(int i = 0; i < list_size(&cur->children); ++i)
+  {
+    struct list_elem *e = list_pop_front(&cur->children);
+    struct shared_data *data = list_entry(e, struct shared_data, child_elem);
+    if(data->ref_count == 1)
+    {
+      free(data);
+    }
+    else if (data->ref_count == 2)
+    {
+      --data->ref_count;
+      list_push_back(&cur->children, &data->child_elem);
+    }
+  }
+  //---------------------------
   //---------------------------
   pd = cur->pagedir;
   if (pd != NULL) 
@@ -662,6 +685,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   struct file *file = NULL;
   off_t file_ofs;
   bool success = false;
+  //int i; //safety int, get an error in cmd
 
   //-----------------------------------------------------------
   //----------------------------
@@ -707,19 +731,17 @@ load (const char *file_name, void (**eip) (void), void **esp)
   } 
   
   
-  
-  
-  //else {
-    //remember we are trying to establish a global close
-    //    don't let a process continue past the if
-        // =========
-    // =========
-    // =========
-    // =========
-    // on hold
-    //file_deny_write(file); //shift positions for deny, we had close it too late 
-  //}
-  //t->executable = file;
+  else {
+   //remember we are trying to establish a global close
+       //don't let a process continue past the if
+        //=========
+    //=========
+    //=========
+    //=========
+    //on hold
+    file_deny_write(file); //shift positions for deny, we had close it too late 
+  }
+  t->executable = file;
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -824,7 +846,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
     // =========
     // =========
   // on hold
-  file_close(file);
+  free(exec_name);
+  //file_close(file);
   return success;
 }
 
