@@ -505,7 +505,11 @@ void process_exit (void)
   // Otherwise, decrement count and let parent deallocate.
   else if (cur->parent_share->ref_count == 2)
   {
+    //try and acquire the ref lock from the parent.
+    lock_acquire(&cur->parent_share->ref_lock);
     --cur->parent_share->ref_count;
+    //return the current ref and release
+    lock_release(&cur->parent_share->ref_lock);
     //list_remove(&cur->parent_share->child_elem);
   }
   
@@ -525,7 +529,11 @@ void process_exit (void)
     }
     else if (data->ref_count == 2)
     {
+      //try and acquire the ref lock from the parent.
+      lock_acquire(&data->ref_lock);
       --data->ref_count;
+      //return the current ref and release
+      lock_release(&data->ref_lock);
       list_push_back(&cur->children,&data->child_elem);
     }
   }
