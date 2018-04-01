@@ -19,6 +19,8 @@
 
 
 static void syscall_handler (struct intr_frame *);
+static struct lock filesys_lock;
+static int get_user (const uint8_t *uaddr);
 struct list_elem *get_list_elem(int fd);
 
 void
@@ -184,7 +186,7 @@ syscall_handler (struct intr_frame *f)
       int retval;
       struct file_map fm;
       struct file *of = filesys_open(file);
-      if(file == NULL)
+      if(of == NULL)
         retval = -1;
       else
       {
@@ -384,7 +386,7 @@ check_addr_valid(void *addr)
   for(int i = 0; i < 4; i++)
   {
     if((addr + i) == NULL || !is_user_vaddr(addr + i) ||
-        pagedir_get_page(thread_current()->pagedir,(addr + i)) == NULL)
+        pagedir_get_page(thread_current()->pagedir,(addr + i)) == NULL || get_user(addr+i) == -1)
     {
       exit(-1);
     }
@@ -392,7 +394,7 @@ check_addr_valid(void *addr)
 }
 
 /*
-  Returns a struct file_map * object for given fd. Returns null
+  Returns a struct list_elem * object for given fd. Returns null
   if fd failed to be found
 */
 struct list_elem
@@ -408,4 +410,20 @@ struct list_elem
       return e;
   }
   return NULL;
+}
+
+/* Reads a byte at user virtual address UADDR.
+UADDR must be below PHYS_BASE.
+Returns the byte value if successful, -1 if a segfault
+occurred. */
+static int
+get_user (const uint8_t *uaddr)
+{
+  if(!((void*)uaddr <= PHYS_BASE))
+    return -1;
+
+  int result;
+  asm ("movl $1f, %0; movzbl %1, %0; 1:"
+  : "=&a" (result) : "m" (*uaddr));
+  return result;
 }

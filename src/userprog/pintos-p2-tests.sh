@@ -47,13 +47,13 @@ main ()
         # test-create-exists
         # test-create-bound
 
-        test-open-normal
-        test-open-missing
-        test-open-boundary
-        test-open-empty
-        test-open-null
-        test-open-bad-ptr
-        test-open-twice
+        # test-open-normal
+        # test-open-missing
+        # test-open-boundary
+        # test-open-empty
+        # test-open-null
+        # test-open-bad-ptr
+        # test-open-twice
 
         # test-close-normal
         # test-close-twice
@@ -96,12 +96,12 @@ main ()
         # test-rox-child
         # test-rox-multichild
 
-        # test-bad-read
-        # test-bad-write
-        # test-bad-read2
-        # test-bad-write2
-        # test-bad-jump
-        # test-bad-jump2
+        test-bad-read
+        test-bad-write
+        test-bad-read2
+        test-bad-write2
+        test-bad-jump
+        test-bad-jump2
 
         # test-multi-oom
 

@@ -76,6 +76,7 @@ filesys_open (const char *name)
     dir_lookup (dir, name, &inode);
   dir_close (dir);
 
+
   return file_open (inode);
 }
 
