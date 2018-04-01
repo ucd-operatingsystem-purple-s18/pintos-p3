@@ -103,6 +103,7 @@ struct thread
     int next_fd; /* holds the next avilabel file descriptor integer */
     struct list children; /* list to hold all the child processes of this process */
     struct list files; /* list to hold all the open files fo this process */
+    struct file* exec_file; /* holds process executable for this thread */
     struct shared_data *parent_share; /* pointer to hold the data shared with this process parent (should only be one) */
 #endif
 

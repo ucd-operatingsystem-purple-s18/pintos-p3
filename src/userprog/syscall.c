@@ -386,7 +386,8 @@ check_addr_valid(void *addr)
   for(int i = 0; i < 4; i++)
   {
     if((addr + i) == NULL || !is_user_vaddr(addr + i) ||
-        pagedir_get_page(thread_current()->pagedir,(addr + i)) == NULL || get_user(addr+i) == -1)
+        pagedir_get_page(thread_current()->pagedir,(addr + i)) == NULL || 
+        get_user(addr+i) == -1)
     {
       exit(-1);
     }

@@ -502,6 +502,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 #ifdef USERPROG
   t->next_fd = 2;
+  t->exec_file = NULL;
   list_init(&t->children);
   list_init(&t->files);
 #endif
