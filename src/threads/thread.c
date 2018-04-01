@@ -502,12 +502,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 #ifdef USERPROG
   t->next_fd = 2;
-  /* Initialize list of children for the thread. */
   list_init(&t->children);
-  /* initialize list of files fo the process */
   list_init(&t->files);
-  // Initialize semaphore for this thread.
-  //sema_init(&t->wait_sema, 0);
 #endif
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

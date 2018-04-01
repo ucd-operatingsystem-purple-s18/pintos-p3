@@ -29,9 +29,9 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
-  tid_t tid; 
+  tid_t tid; //the user thread
   char *first_arg = malloc(strlen(file_name) + 1);
-  char *dummy_arg; 
+  char *dummy_arg; //our token pointer
   struct thread *t = thread_current();
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -42,32 +42,33 @@ process_execute (const char *file_name)
   }
 
   strlcpy(first_arg, file_name, strlen(file_name) + 1);
+
   strtok_r(first_arg, " ", &dummy_arg);
+
 
   data->file_name = malloc(strlen(file_name) + 1);
   strlcpy(data->file_name, file_name, strlen(file_name) + 1);
-  data->load_success = false;
-  data->shared = NULL;
 
-  /* initialize semaphore to check child loading */
   sema_init(&data->load_sema, 0);
 
   tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
 
-  /* free first_arg memory */
-  free(first_arg);
-
-  /* down child loading semaphore */
   sema_down(&data->load_sema);
 
-  /* if child successfully created add to current threads children list */
-  if(tid != TID_ERROR)
+  if(data->load_success)
   {
     list_push_back(&t->children, &data->shared->child_elem);
   }
   else
   {
-    free(data);
+    free(data->shared);
+    return -1;
+  }
+  //================================
+
+  if (tid == TID_ERROR)
+  {
+    palloc_free_page (data); 
   }
 
   return tid;
@@ -79,22 +80,36 @@ process_execute (const char *file_name)
 static void
 start_process (void *in_data)
 {
+  //char *file_name = file_name_;
   struct intr_frame if_;
+  //bool success;
+  //create our local struct, based on our incoming reference
   struct pass_in *data = (struct pass_in*) in_data;
+  //-----------------------------------------------------------
 
-  /* dynamically allocate share data */
+  //need to allocate the structure for the pass_in data, here???
   struct shared_data *share = malloc(sizeof(struct shared_data));
 
-  /* initializing shared_data struct */
+  //sema_init(&share->wait_sema, 0);
+  //everything for the shared data needs to be allocated for
   sema_init(&share->dead_sema, 0);
+
   lock_init(&share->ref_lock);
+  //Setting that struct share attribute as our current thread id
   share->tid = thread_current()->tid;
   share->exit_code = -2;
+  //share->reference_count = 2;
   share->ref_count = 2;
-  
-  /* add shared data to parent and child thread */
+  //thread_current()->parent_share = share;
+
   data->shared = share;
+
+  //Now we need to add the structure to the parent thread's list
+  //list_push_front(&data->parent->children, &share->child_elem);
+  //current thread
   thread_current()->parent_share = share;
+  //-----------------------------------------------------------
+
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -103,12 +118,12 @@ start_process (void *in_data)
   if_.eflags = FLAG_IF | FLAG_MBS;
   data->load_success = load(data->file_name, &if_.eip, &if_.esp);
 
-  if(!data->load_success)
-  {
+  sema_up(&data->load_sema);
+
+
+  if(!data->load_success) 
     thread_exit();
-  }
-  else
-    sema_up(&data->load_sema);
+    //-----------------------------------------------------------
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -132,6 +147,12 @@ start_process (void *in_data)
 int
 process_wait (tid_t child_tid) 
 {
+  //struct thread *rt_thread;
+  //rt_thread = thread_at_tid(child_tid);
+  //if(rt_thread->tid == -1)
+  //{
+  //  return -1;
+  //}
   struct thread *t = thread_current();
   struct list_elem *e;
   for (e = list_begin (&t->children); e != list_end (&t->children); e = list_next (e))
@@ -140,10 +161,11 @@ process_wait (tid_t child_tid)
       if(share->tid == child_tid)
       {
         sema_down(&share->dead_sema);
-        list_remove(e);
+        list_remove(&share->child_elem);
         return share->exit_code;
       }
   }
+  //sema_down(&rt_thread->wait_sema);
   return -1;
 }
 
@@ -153,21 +175,23 @@ void process_exit (void)
   struct thread *cur = thread_current();
   uint32_t *pd;
 
-  lock_acquire(&cur->parent_share->ref_lock);
-  /* If the child outlives the parent, the child must deallocate the
-     shared memory. */
+  //================================================
+  // If the child outlives the parent, the child must deallocate the
+  // shared memory.
   if(cur->parent_share->ref_count == 1)
   {
     free(cur->parent_share);
   }
-  /* Otherwise, decrement count and let parent deallocate. */
+  // Otherwise, decrement count and let parent deallocate.
   else if (cur->parent_share->ref_count == 2)
   {
     --cur->parent_share->ref_count;
+    //list_remove(&cur->parent_share->child_elem);
   }
   
-  /* Iterate through each child in the list. If the parent outlived the child, 
-     the parent should deallocate. */
+
+  // Iterate through each child in the list. If the parent outlived the child, 
+  // the parent should deallocate.
   for(int i = 0; i < list_size(&cur->children); ++i)
   {
     struct list_elem *e = list_pop_front(&cur->children);
@@ -182,7 +206,7 @@ void process_exit (void)
       list_push_back(&cur->children,&data->child_elem);
     }
   }
-  lock_release(&cur->parent_share->ref_lock);
+  //================================================
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -300,12 +324,33 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
 
+  //-----------------------------------------------------------
+  //----------------------------
+  //----------------------------
+  // New char* for first arg in file_name (the executable name)  
   char *exec_name = malloc(strlen(file_name) + 1);
   char *dummy_arg;
   strlcpy(exec_name, file_name, strlen(file_name) + 1);
+  // Get first argument of name.
+    /*
+  exp. strtok_r
+  
+          //We are splitting a string base on a space character
+          char str[] = "Geeks for Geeks";
+          char *token;
+          char *rest = str;
+          while ((token = strtok_r(rest, " ", &rest)))
+            printf("%s\n", token)
 
+            -->result = 
+                Geeks
+                for
+                Geeks
+  */
   strtok_r(exec_name, " ", &dummy_arg);
-
+  //----------------------------
+  //----------------------------
+  //-----------------------------------------------------------
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
@@ -313,9 +358,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
+  //file = filesys_open (file_name);
   file = filesys_open (exec_name);
   if (file == NULL) 
     {
+      //printf ("load: %s: open failed\n", file_name);
       printf ("load: %s: open failed\n", exec_name);
       goto done; 
     }
@@ -392,7 +439,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
-
+  //=======================================
+  // Allocate a new string so we don't modify the original argument.
   char *args_ptr = malloc(strlen(file_name) + 1);
   strlcpy(args_ptr, file_name, strlen(file_name) + 1);
   //=======================================
@@ -401,7 +449,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
   Remember we are sending in our pointer to our stack and
       the pointer to the allocated space, with our copied args
   */
+  //=======================================
   if (!setup_stack (esp, args_ptr))
+  //=======================================
     goto done;
 
   /* Start address. */
@@ -410,13 +460,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
   success = true;
 
  done:
-  free(exec_name);
   /* We arrive here whether the load is successful or not. */
-  file_deny_write(file);
+  //file_deny_write(file);
   file_close(file);
   return success;
 }
-
+
 /* load() helpers. */
 
 static bool install_page (void *upage, void *kpage, bool writable);
@@ -535,6 +584,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 
 static bool
+//setup_stack (void **esp) 
 setup_stack (void **esp, char *in_args) 
 {
 
@@ -544,73 +594,87 @@ setup_stack (void **esp, char *in_args)
   const int WORD_LIMIT = 50; //our char pe/rlimit from the manual
   
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  //if it is not NULL then it was allocated and we can continue
   if (kpage != NULL) 
-  {
-    success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-    if (success)
-    {  
-      char *current;
-      char *buffer;
-      char *current_arg[WORD_LIMIT];
-      for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
-      {
-        /* we get our allocation details, remember not to forget the inherent NULL */
-        int size_of_curr = strlen(current) + 1;
-        /* We need to allocate in precision, and in line with each arg
-            once we have allocated make sure to copy into place */
-        current_arg[index] = malloc(size_of_curr);
-        strlcpy(current_arg[index], current, size_of_curr);
-        ++index;
-      }
-      /* Stack pointer is set here. Now we can copy over the arguments. */
-      *esp = PHYS_BASE;
-      /* Loop to copy arugments. */
-      char *char_ptrs[WORD_LIMIT];
-      for(int i = index-1; i >= 0; --i)
-      {
-        int size_of_curr = strlen(current_arg[i]) + 1;
-        /* Decrement esp to size of arugment to be copied. */
-        *esp -= size_of_curr;  
-        strlcpy(*esp, current_arg[i], size_of_curr);
-        char_ptrs[i] = (char *) *esp;
-      }
-      if((int) *esp & 0x03)
-      {
-        /* Clear the lowest two bits. 
-           This gets us the 'closest' next word-aligned address. */
-        *esp =  (void*) ((int) *esp & ~0x03);
-      }
-      /* 2. Push NULL pointer */
-      *esp -= 4;
-      memset(*esp, 0, 4);
-      /* 3. Push args in reverse order. */
-      for(int i = index-1; i >= 0; --i)
-      {
-        *esp -= 4;
-        memcpy(*esp, &char_ptrs[i], 4);
-      }
-      /* 4. Push pointer to argv[0] (argv). */
-      char **argv = *esp;
-      *esp -= 4;
-      memcpy(*esp, &argv, 4);
-      /* 5. Push argc (count of args, currently in 'index'). */
-      *esp -= 4;
-      memcpy(*esp, &index, 4);
-      /* 6. Push 'fake' return address. */
-      *esp -= 4;
-      memset(*esp, 0, 4);
+    {
 
-      /* free memory */
-      for(int i = 0; i < index; i++)
-        free(current_arg[i]);
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+
+      if (success)
+      {  
+        // Parsing arguments:
+        char *current;
+        char *buffer;
+        char *current_arg[WORD_LIMIT];
+
+
+        for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
+        {
+          //we get our allocation details, remember not to forget the inherent NULL
+          int size_of_curr = strlen(current) + 1;
+          //We need to allocate in precision, and in line with each arg
+          //    once we have allocated make sure to copy into place
+          current_arg[index] = malloc(size_of_curr);
+          strlcpy(current_arg[index], current, size_of_curr);
+          ++index;
+        }
+
+        // Stack pointer is set here. Now we can copy over the arguments.
+        *esp = PHYS_BASE;
+
+        // Loop to copy arugments.
+        char *char_ptrs[WORD_LIMIT];
+        for(int i = index-1; i >= 0; --i)
+        {
+          int size_of_curr = strlen(current_arg[i]) + 1;
+          // Decrement esp to size of arugment to be copied.
+          *esp -= size_of_curr;  
+          strlcpy(*esp, current_arg[i], size_of_curr);
+          char_ptrs[i] = (char *) *esp;
+        }
+
+        if((int) *esp & 0x03)
+        {
+
+          // Clear the lowest two bits. 
+          // This gets us the 'closest' next word-aligned address.
+          *esp =  (void*) ((int) *esp & ~0x03);
+        }
+        // 2. Push NULL pointer
+        *esp -= 4;
+
+        memset(*esp, 0, 4);
+        
+        // 3. Push args in reverse order.
+        for(int i = index-1; i >= 0; --i)
+        {
+          *esp -= 4;
+          memcpy(*esp, &char_ptrs[i], 4);
+        }
+        // 4. Push pointer to argv[0] (argv).
+        char **argv = *esp;
+        *esp -= 4;
+        memcpy(*esp, &argv, 4);
+
+        // 5. Push argc (count of args, currently in 'index').
+        *esp -= 4;
+        memcpy(*esp, &index, 4);
+
+        // 6. Push 'fake' return address.
+        *esp -= 4;
+
+        memset(*esp, 0, 4);
+        //*esp -= 4;
+        //printf("esp =%x\n",*esp);
+      }
+      else
+          /*
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
+        palloc_free_page (kpage);
     }
-    else
-        /*
-        we need to call palloc_free_page  in order to free the page.
-        When the page is freed, the bits are set to false, 
-            That means that the page is now unmapped */
-      palloc_free_page (kpage);
-  }
   return success;
 }
 
