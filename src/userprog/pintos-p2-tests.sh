@@ -24,11 +24,11 @@ main ()
         
         # Run all the following tests that are not commented out:
 
-        test-args-none
-        test-args-single
-        test-args-multiple
-        test-args-many
-        test-args-dbl-space
+        # test-args-none
+        # test-args-single
+        # test-args-multiple
+        # test-args-many
+        # test-args-dbl-space
 
         # test-sc-bad-sp
         # test-sc-bad-arg
@@ -75,14 +75,14 @@ main ()
         # test-write-stdin
         # test-write-bad-fd
 
-        # test-exec-once
-        # test-exec-arg
-        # test-exec-bound
-        # test-exec-bound-2
-        # test-exec-bound
-        # test-exec-multiple
-        # test-exec-missing
-        # test-exec-bad-ptr
+        test-exec-once
+        test-exec-arg
+        test-exec-bound
+        test-exec-bound-2
+        test-exec-bound
+        test-exec-multiple
+        test-exec-missing
+        test-exec-bad-ptr
 
         # test-wait-simple
         # test-wait-twice
@@ -103,7 +103,7 @@ main ()
         # test-bad-jump
         # test-bad-jump2
 
-        # #test-multi-oom
+        # test-multi-oom
 
         # test-lg-create
         # test-lg-full
