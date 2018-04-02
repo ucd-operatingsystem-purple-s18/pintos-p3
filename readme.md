@@ -12,5 +12,7 @@ You will work in the vm directory for this project. The vm directory contains on
 You will probably be encountering just a few files for the first time:
 
 devices/block.h
+
 devices/block.c
+
 Provides sector-based read and write access to block device. You will use this interface to access the swap partition as a block device.
