@@ -19,37 +19,37 @@ Provides sector-based read and write access to block device. You will use this i
 
 # =====Pintos Virtual Memory
 Slides adapted from previous quarters
-#Overview: Project Components
+# Overview: Project Components
 ## High Level Goal: Implement Virtual Memory
-##  Page Table Management
+## Page Table Management
 	### Page Fault Handler
 		■ Interacts with most of the rest of the system
 	### Eviction Policy
 		■ Approximation of LRU (e.g. “clock algorithm”)
-##  Swap Disk Management
+## Swap Disk Management
 	### Page{in,out} evicted pages
-##  Stack Growth
-##  Memory Mapped Files (including lazy loading executables)
+## Stack Growth
+## Memory Mapped Files (including lazy loading executables)
 
 # =====First: Memory Layout
-##  All user virtual addresses have corresponding kernel virtual addresses
-##  The hardware page table (discussed in lecture) allows the MMU to map addresses automatically
-##  You will need to keep around additional information
+## All user virtual addresses have corresponding kernel virtual addresses
+## The hardware page table (discussed in lecture) allows the MMU to map addresses automatically
+## You will need to keep around additional information
 	### e.g. keep track of where to fetch pages that aren’t in memory
 	### Explained in a few more slides
 
 # =====Pintos Page Tables
-##  Base implementation already creates basic page directory & page table structure mappings. (Look at paging_init() in init.c)
-##  e.g. user wants a new upage at vaddr:
+## Base implementation already creates basic page directory & page table structure mappings. (Look at paging_init() in init.c)
+## e.g. user wants a new upage at vaddr:
 	### palloc_get_page(PAL_USER) returns a page
 	### Register with pagedir_set_page()
-##  Layout is very similar to the one discussed in lecture, except:
+## Layout is very similar to the one discussed in lecture, except:
 	### Only two levels of page tables
 	### 4 byte page table entries
-###  Note that hardware bits (present, writable, user, accessed, dirty) are PER PAGE TABLE ENTRY, not per physical frame!
+### Note that hardware bits (present, writable, user, accessed, dirty) are PER PAGE TABLE ENTRY, not per physical frame!
 
 # =====Handling Virtual Memory
-##  Page Fault Handler
+## Page Fault Handler
 	### Verify that the access is legal (read/write)
 	### If page has been evicted, load from disk/swap
 	### Else, trigger stack growth if necessary
@@ -58,9 +58,9 @@ Slides adapted from previous quarters
 	### You may need to “pin” pages to prevent them from being evicted
 		■ Don’t pin for too long, but
 		■ Don’t worry about running out of pages to pin (you can panic the kernel)
-##  Global Data Structure: Frame Table
+## Global Data Structure: Frame Table
 	### Keeps track of the physical frames that are allocated/free
-##  Per-Process Data Structure: Supplemental Page Table
+## Per-Process Data Structure: Supplemental Page Table
 	### Keeps track of supplemental data about each page
 	### i.e. location of data (frame/disk/swap); pointer to corresponding kernel virtual address; list of aliases, etc.
 
@@ -101,10 +101,10 @@ Slides adapted from previous quarters
 	### Keeps track of the swap slots that are allocated/free
 
 # =====Implementation Order
-##1) Frame Table: allocate frames (physical pages)
-##2) Supplemental Page Table: handle page faults.
-##3) Stack growth, mmap()ed files, lazy executable loading [work in parallel]
-##4) Eviction/Paging
+## 1) Frame Table: allocate frames (physical pages)
+## 2) Supplemental Page Table: handle page faults.
+## 3) Stack growth, mmap()ed files, lazy executable loading [work in parallel]
+## 4) Eviction/Paging
 
 But these are all interdependent! It WON’T work to design them separately and try to piece
 
