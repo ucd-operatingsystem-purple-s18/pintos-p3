@@ -17,7 +17,7 @@ devices/block.c
 
 Provides sector-based read and write access to block device. You will use this interface to access the swap partition as a block device.
 
-#=====Pintos Virtual Memory
+# =====Pintos Virtual Memory
 Slides adapted from previous quarters
 #Overview: Project Components
 ## High Level Goal: Implement Virtual Memory
@@ -31,18 +31,15 @@ Slides adapted from previous quarters
 ##  Stack Growth
 ##  Memory Mapped Files (including lazy loading executables)
 
-#=====First: Memory Layout
-##  All user virtual addresses have corresponding kernel
-virtual addresses
-##  The hardware page table (discussed in lecture) allows
-the MMU to map addresses automatically
+# =====First: Memory Layout
+##  All user virtual addresses have corresponding kernel virtual addresses
+##  The hardware page table (discussed in lecture) allows the MMU to map addresses automatically
 ##  You will need to keep around additional information
 	### e.g. keep track of where to fetch pages that aren’t in memory
 	### Explained in a few more slides
 
-#=====Pintos Page Tables
-##  Base implementation already creates basic page directory &
-page table structure mappings. (Look at paging_init() in init.c)
+# =====Pintos Page Tables
+##  Base implementation already creates basic page directory & page table structure mappings. (Look at paging_init() in init.c)
 ##  e.g. user wants a new upage at vaddr:
 	### palloc_get_page(PAL_USER) returns a page
 	### Register with pagedir_set_page()
@@ -51,7 +48,7 @@ page table structure mappings. (Look at paging_init() in init.c)
 	### 4 byte page table entries
 ###  Note that hardware bits (present, writable, user, accessed, dirty) are PER PAGE TABLE ENTRY, not per physical frame!
 
-#=====Handling Virtual Memory
+# =====Handling Virtual Memory
 ##  Page Fault Handler
 	### Verify that the access is legal (read/write)
 	### If page has been evicted, load from disk/swap
@@ -67,9 +64,8 @@ page table structure mappings. (Look at paging_init() in init.c)
 	### Keeps track of supplemental data about each page
 	### i.e. location of data (frame/disk/swap); pointer to corresponding kernel virtual address; list of aliases, etc.
 
-#=====Stack Growth
-##  As part of the page fault handler, devise a heuristic to identify
-valid stack accesses that require stack growth
+# =====Stack Growth
+##  As part of the page fault handler, devise a heuristic to identify valid stack accesses that require stack growth
 ##  Valid stack accesses may cause the following page faults:
 	### PUSH: 4 bytes below %esp
 	### PUSHA: 32 bytes below %esp
@@ -80,7 +76,7 @@ valid stack accesses that require stack growth
 ## You should limit stack size to a constant as most OSes do
 	### Why is this a good idea?
 
-#=====Memory Mapped Files
+# =====Memory Mapped Files
 ## Implement the mmap() and munmap() system calls
 ## Per-Process Data Structure: mmap Page Table
 	### Keeps track of file -> page mappings for the process
@@ -90,7 +86,7 @@ valid stack accesses that require stack growth
 	### The range of pages mapped overlaps with existing mapped pages
 ## All mappings are implicitly unmapped when a process exits.
 
-#=====Page Replacement Mechanism
+# =====Page Replacement Mechanism
 ## Eviction Policy
 	### Approximation of LRU replacement (e.g. “clock” algorithm)
 	### Pages that can be deallocated without writing to swap/disk
@@ -104,7 +100,7 @@ valid stack accesses that require stack growth
 ## Global Data Structure: Swap Table
 	### Keeps track of the swap slots that are allocated/free
 
-#=====Implementation Order
+# =====Implementation Order
 ##1) Frame Table: allocate frames (physical pages)
 ##2) Supplemental Page Table: handle page faults.
 ##3) Stack growth, mmap()ed files, lazy executable loading [work in parallel]
@@ -112,7 +108,7 @@ valid stack accesses that require stack growth
 
 But these are all interdependent! It WON’T work to design them separately and try to piece
 
-#=====Useful Code
+# =====Useful Code
 ## Page Allocator (threads/palloc.{h,c})
 	### Allows you to obtain a virtual address for a physical frame
 	### Pages can be allocated from either the user pool or the kernel pool
