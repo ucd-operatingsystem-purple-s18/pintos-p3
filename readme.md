@@ -20,7 +20,7 @@ Provides sector-based read and write access to block device. You will use this i
 Pintos Virtual Memory
 ====================
 Slides adapted from previous quarters
-Overview: Project Components
+#Overview: Project Components
 ## High Level Goal: Implement Virtual Memory
 ##  Page Table Management
 	### Page Fault Handler
@@ -30,10 +30,9 @@ Overview: Project Components
 ##  Swap Disk Management
 	### Page{in,out} evicted pages
 ##  Stack Growth
-##  Memory Mapped Files (including lazy loading
-executables)
+##  Memory Mapped Files (including lazy loading executables)
 ====================
-First: Memory Layout
+#First: Memory Layout
 ##  All user virtual addresses have corresponding kernel
 virtual addresses
 ##  The hardware page table (discussed in lecture) allows
@@ -42,7 +41,7 @@ the MMU to map addresses automatically
 	### e.g. keep track of where to fetch pages that aren’t in memory
 	### Explained in a few more slides
 ====================
-Pintos Page Tables
+#Pintos Page Tables
 ##  Base implementation already creates basic page directory &
 page table structure mappings. (Look at paging_init() in init.c)
 ##  e.g. user wants a new upage at vaddr:
@@ -51,10 +50,9 @@ page table structure mappings. (Look at paging_init() in init.c)
 ##  Layout is very similar to the one discussed in lecture, except:
 	### Only two levels of page tables
 	### 4 byte page table entries
-###  Note that hardware bits (present, writable, user, accessed,
-dirty) are PER PAGE TABLE ENTRY, not per physical frame!
+###  Note that hardware bits (present, writable, user, accessed, dirty) are PER PAGE TABLE ENTRY, not per physical frame!
 ====================
-Handling Virtual Memory
+#Handling Virtual Memory
 ##  Page Fault Handler
 	### Verify that the access is legal (read/write)
 	### If page has been evicted, load from disk/swap
@@ -68,10 +66,9 @@ Handling Virtual Memory
 	### Keeps track of the physical frames that are allocated/free
 ##  Per-Process Data Structure: Supplemental Page Table
 	### Keeps track of supplemental data about each page
-	### i.e. location of data (frame/disk/swap); pointer to corresponding kernel virtual
-address; list of aliases, etc.
+	### i.e. location of data (frame/disk/swap); pointer to corresponding kernel virtual address; list of aliases, etc.
 ====================
-Stack Growth
+#Stack Growth
 ##  As part of the page fault handler, devise a heuristic to identify
 valid stack accesses that require stack growth
 ##  Valid stack accesses may cause the following page faults:
@@ -80,12 +77,11 @@ valid stack accesses that require stack growth
 	### Other accesses: anywhere between %esp and PHYS_BASE
 		■ Accesses to stack pages that have been paged out
 		■ Accesses above the stack pointer after %esp has been decremented (i.e. with SUB $n %esp)
-## All pages on the stack (except the first one) must be
-allocated lazily
+## All pages on the stack (except the first one) must bevallocated lazily
 ## You should limit stack size to a constant as most OSes do
 	### Why is this a good idea?
 ====================
-Memory Mapped Files
+#Memory Mapped Files
 ## Implement the mmap() and munmap() system calls
 ## Per-Process Data Structure: mmap Page Table
 	### Keeps track of file -> page mappings for the process
@@ -93,9 +89,9 @@ Memory Mapped Files
 ## mmap() should fail (return -1) if:
 	### The size of the file is zero bytes
 	### The range of pages mapped overlaps with existing mapped pages
-## All mappings are implicitly unmapped when a process exits
-Page Replacement Mechanism
+## All mappings are implicitly unmapped when a process exits.
 ====================
+#Page Replacement Mechanism
 ## Eviction Policy
 	### Approximation of LRU replacement (e.g. “clock” algorithm)
 	### Pages that can be deallocated without writing to swap/disk
@@ -109,7 +105,7 @@ Page Replacement Mechanism
 ## Global Data Structure: Swap Table
 	### Keeps track of the swap slots that are allocated/free
 ====================
-Implementation Order
+#Implementation Order
 ##1) Frame Table: allocate frames (physical pages)
 ##2) Supplemental Page Table: handle page faults.
 ##3) Stack growth, mmap()ed files, lazy executable loading [work in parallel]
@@ -117,7 +113,7 @@ Implementation Order
 
 But these are all interdependent! It WON’T work to design them separately and try to piece
 ====================
-Useful Code
+#Useful Code
 ## Page Allocator (threads/palloc.{h,c})
 	### Allows you to obtain a virtual address for a physical frame
 	### Pages can be allocated from either the user pool or the kernel pool
