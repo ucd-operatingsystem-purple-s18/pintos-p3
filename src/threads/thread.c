@@ -93,6 +93,11 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&all_list);
 
+  //===============================
+  //pushing for seek, will need a lock on the files.
+  //lock_init(&file_lock); // we should go global. This is too localized
+  //===============================
+
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
