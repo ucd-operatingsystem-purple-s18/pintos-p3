@@ -91,29 +91,7 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-<<<<<<< HEAD
 
-=======
-    // -----------------------
-    //added in P2
-    int next_fd; //holds the next avilabel file descirptor integer
-    struct list children; //list to hold all the child processes of this process
-    struct list files; //list to hold all the open files fo this process
-    struct shared_data *parent_share; //pointer to hold the data shared with this process parent (should only be one)
-    // =========================
-    // =========
-    // =========
-    // =========
-    // =========
-    //should put one in to hold the executable file for the process
-    //    on hold
-    struct file *executable;
-    // =========
-    // =========
-    // =========
-    // =========
-    //-----------------------
->>>>>>> eb850a09c19542458bec5ff3ee21c5ea2e1f2ed6
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -155,9 +133,6 @@ struct file_map
   struct file *file;                    /* Holds the actual file* for this file. */
   struct list_elem file_elem;           /* Allows the file to be an element in a list. */
 };
-//===================================
-//setup for us to be able to implement the lock on the file
-struct lock file_lock; // we should go global. This is too localized
 //===================================
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

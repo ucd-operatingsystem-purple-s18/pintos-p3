@@ -17,9 +17,7 @@
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "threads/thread.h"
-#include "threads/vaddr.h" 
-
-//Approximately 79/80 tests. 
+#include "threads/vaddr.h"
 
 /* TODO - Alot */
 
@@ -37,119 +35,8 @@ process_execute (const char *file_name)
   char *first_arg = malloc(strlen(file_name) + 1);
   char *dummy_arg; //our token pointer
   struct thread *t = thread_current();
-
-
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-<<<<<<< HEAD
-=======
-  //----------------------------------------------
-  //----------------------------------------------
-  //----------------------------------------------
-  //----------------------------------------------
-  //----------------------------------------------
-  //=================process.c - changes 1 start============== - 
-  //MAX_WORDS Setting a string limit for word @50char (as per manual) - 
-  //  This limit is for the size of the file_name - 
-  //    This limit = approx. 128 byte size arguement for string. - 
-
-
-  /*
-  //------------------------------------------
-  strtok_r explanation:
-    strtok_r() for splitting a string with some delimiter. Splitting a string is a common task
-    For example, we have a comma separated list of items from a file and we want individual
-      items in an array.
-    strtok_r does the same task of parsing as strtok, but is a reentrant version.
-        reentrant version = a function is said to be reentrant if there is a provision to interrupt
-          the function in the course of execution, service the interrupt service routine adn then 
-          resume the earlier going on function, without hampering its earlier course of action.
-
-          //We are splitting a string base on a space character
-          char str[] = "Geeks for Geeks";
-          char *token;
-          char *rest = str;
-          while ((token = strtok_r(rest, " ", &rest)))
-            printf("%s\n", token)
-
-            -->result = 
-                Geeks
-                for
-                Geeks
-  //-------------------------------------------
-  for (token = strtok_r(s, " ", &save_ptr); token != NULL; token = strtok_r(NULL, " ", &save_ptr));
-  {
-    printf("argument: '%s'\n", token);
-    arguments[arg_count] = token; //set ptr at index arg_count to token, a char * returned from strtok_r() - 
-    ++arg_count;
-  }//-------------end for---------------------
-  */
-
-
-  // NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
-  // Establish the NULL pointer sentinel
-  // memset() is used to fill a block of memory with a particular value
-  //      ptr ==> starting address of memory to be filled
-  //      x   ==> value to be filled
-  //      n   ==> number of bytes to be filled, starting from ptr to be filled
-  // void *memset(void *ptr, int x, size_t n);
-  //  Note: that the ptr is a void pointer, so that we can pass any type of ptr to this function.
-  /*
-  //========================
-  //========================
-  //========================
-      // C example of memset
-      #include <studio.h>
-      #include <string.h>
-
-      int main()
-      {
-        char str[50] = "GeeksForGeeks is for programming geeks.";
-        printf("\nBefore memset(): %s\n", str);
-
-        //Fill 8 characters starting from str[13] with '.'
-        memset(str + 13, '.', 8*sizeof(char));
-
-        printf("After memset(): %s", str);
-        return 0;
-      }
-
-      //Before memset(): GeeksForGeeks is for programming geeks.
-      //After memset(): GeeksForGeeks........programming geeks.
-      //========================
-      Explanation - (str + 13) points to first space (0 based index) of the string - 
-      "GeeksForGeeks is for programming geeks.", and memset() sets the character '.' starting from first
-      ' ' of the string up to 8 character positiion of the given string and hence we get the output.
-      //========================
-  */
-
-  //-------------------------------------------
-  //----------------------------------------------
-  //----------------------------------------------
-  //----------------------------------------------
-  //----------------------------------------------
-  //=================process.c - changes 1 end================
-  //==========================================
-
-  //-----------------------------------------------------------
-  //s-----------------------------------------------------------
-  //fn_copy = palloc_get_page (0); 
-  //struct pass_in *data = palloc_get_page(0);
-  /*
-    We are malloc-ing to allocate ehap memory the size of our struct.
-        We have to keep in mind where all variables are stored, on the stack and heap.
-        Inside of our function, we have local variables.
-            These are stored on our stack.
-            That stack will be cleared out of the function.
-        We want to reference or use those variables outside, once we have left the funtion
-            and therefore cleared the stack.
-        We need to allocate that memory space on the heap.
-            This lets us use that "local" variable outside.
-
-        The malloc() function allocates SIZE bytes, and returns a pointer to the allocated
-            memory. The memory in not initialized. If size==0 then malloc returns NULL
-                             |||     SIZE            |||  */
->>>>>>> eb850a09c19542458bec5ff3ee21c5ea2e1f2ed6
   struct pass_in *data = malloc(sizeof(struct pass_in));
   if (data == NULL)
   {
@@ -165,34 +52,7 @@ process_execute (const char *file_name)
   strlcpy(data->file_name, file_name, strlen(file_name) + 1);
 
   sema_init(&data->load_sema, 0);
-<<<<<<< HEAD
 
-=======
-    /* Create a new thread to execute FILE_NAME. */
-  //tid = thread_create(arguments[0], PRI_DEFAULT, start_process, fn_copy);
-  //tid = thread_create (first_arg, PRI_DEFAULT, start_process, fn_copy);
-  /*
-    Which means when a thread is created with thread_create in this function to run the user 
-      program, you will notice that the thread is named the raw ﬁlename: 
-        tid = thread_create(file_name, PRI_DEFAULT, start_process, fn_copy);
-
-  Also notice fn_copy. This is a copy of the raw ﬁlename and passed in as an 
-  auxiliary parameter. This will come in handy. The function this thread will run 
-  is start_process, which takes in an argument void *file_name_. 
-  
-  fn_copy is passed in as this argument, allowing you access to a copy of the full 
-  raw ﬁlename in this function. This will come in handy. 
-  
-  If you look at the start_process function, you will see a load function; this function is where 
-the user program gets loaded with all its data. In this load function, Pintos will 
-try to load the executable (a ﬁle) with filesys_open(file_name). 
-Once again, this ﬁlename should not be the raw ﬁlename but instead just the executable name. 
-You will decide when to extract the executable name and pass in the correct string. 
-In the load function you will also ﬁnd a function called setup_stack. 
-This is the function in which you will setup the stack for each user program
-
-  */
->>>>>>> eb850a09c19542458bec5ff3ee21c5ea2e1f2ed6
   tid = thread_create (first_arg, PRI_DEFAULT, start_process, data);
 
   sema_down(&data->load_sema);
@@ -259,36 +119,12 @@ start_process (void *in_data)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   data->load_success = load(data->file_name, &if_.eip, &if_.esp);
-<<<<<<< HEAD
 
   sema_up(&data->load_sema);
 
 
   if(!data->load_success) 
-=======
-  //-----------------------------------------------------------
-  //-----------------------------------------------------------
-  //-----------------------------------------------------------
-  //sema_up(&data->load_sema);
-  // If load failed, quit. 
-  //-----------------------------------------------------------
-  //palloc_free_page(file_name);
-  //if (!success)
-  //palloc_free_page(data);
-  //We are too simple, exiting without finishing our sema progression
-  //if(!data->load_success)
-  //  data = struct --> load_success boolean attribute in struct
-  //      verifying that we actually loaded the struct.
-  if(!data->load_success)
-  {
-    share->exit_code = -1;
-    //push through semaphore
-    sema_up(&data->load_sema);
->>>>>>> eb850a09c19542458bec5ff3ee21c5ea2e1f2ed6
     thread_exit();
-  }else{
-    sema_up(&data->load_sema);
-  }
     //-----------------------------------------------------------
 
   /* Start the user process by simulating a return from an
@@ -309,11 +145,7 @@ start_process (void *in_data)
    immediately, without waiting.
 
    This function will be implemented in problem 2-2.  For now, it
-   does nothing. 
-   
-   ---(process_wait) = Waits for the child process with designated 
-        tid process_wait to ﬁnish before continuing execution.
-   */
+   does nothing. */
 int
 process_wait (tid_t child_tid) 
 {
@@ -324,26 +156,18 @@ process_wait (tid_t child_tid)
   //  return -1;
   //}
   struct thread *t = thread_current();
-  //Each list element is a struct containing a previous and next pointer:
-  //    Note: we are cycling through our list_elem but this is auto empty 
-  //      This is where we have to finish with wait. This has to be assigned first
   struct list_elem *e;
   for (e = list_begin (&t->children); e != list_end (&t->children); e = list_next (e))
   {
       struct shared_data *share = list_entry (e, struct shared_data, child_elem);
-      //Checking for our child to finnish
       if(share->tid == child_tid)
       {
         sema_down(&share->dead_sema);
         list_remove(&share->child_elem);
-        //return share->exit_code;
-        int exit_val = share->exit_code;
-        free(share);
-        return exit_val;
+        return share->exit_code;
       }
   }
   //sema_down(&rt_thread->wait_sema);
-  //the -1 means the parent process will return without the child closing
   return -1;
 }
 
@@ -353,9 +177,6 @@ void process_exit (void)
   struct thread *cur = thread_current();
   uint32_t *pd;
 
-  char *thr_name = thread_name();
-  printf("%s: exit(%d)\n", thr_name, cur->parent_share->exit_code);
-  sema_up(&cur->parent_share->dead_sema);
   //================================================
   // If the child outlives the parent, the child must deallocate the
   // shared memory.
@@ -366,11 +187,7 @@ void process_exit (void)
   // Otherwise, decrement count and let parent deallocate.
   else if (cur->parent_share->ref_count == 2)
   {
-    //try and acquire the ref lock from the parent.
-    lock_acquire(&cur->parent_share->ref_lock);
     --cur->parent_share->ref_count;
-    //return the current ref and release
-    lock_release(&cur->parent_share->ref_lock);
     //list_remove(&cur->parent_share->child_elem);
   }
 
@@ -378,54 +195,6 @@ void process_exit (void)
     file_close(cur->exec_file);
   
 
-  // Iterate through each child in the list. If the parent outlived the child, 
-  // the parent should deallocate.
-  //for(int i = 0; i < list_size(&cur->children); ++i)
-  int children_size = list_size(&cur->children);
-  for(int i=0; i<children_size; ++i)
-  {
-    //Each list element is a struct containing a previous and next pointer:
-    struct list_elem *e = list_pop_front(&cur->children);
-    struct shared_data *data = list_entry(e, struct shared_data, child_elem);
-    if(data->ref_count == 1)
-    {
-      free(data);
-    }
-    else if (data->ref_count == 2)
-    {
-      //try and acquire the ref lock from the parent.
-      lock_acquire(&data->ref_lock);
-      --data->ref_count;
-      //return the current ref and release
-      lock_release(&data->ref_lock);
-      list_push_back(&cur->children,&data->child_elem);
-    }
-  }
-  //================================================
-
-  /* Destroy the current process's page directory and switch back
-     to the kernel-only page directory. */
-  //=====================
-  //=====================
-  //=====================
-  //=====================
-  //=====================
-  //=====================
-  //this times out. oom doesnt pass if it is gone
-  //    while here, it tries and holds for 361 seconds.
-      // =========
-    // =========
-    // =========
-    // =========
-    //on hold
-  //file_close(cur->executable); //establish an end
-  //=====================
-  //=====================
-  //=====================
-  //=====================
-  //=====================
-  //=====================
-    //=====================
   // Iterate through each child in the list. If the parent outlived the child, 
   // the parent should deallocate.
   for(int i = 0; i < list_size(&cur->children); ++i)
@@ -439,11 +208,13 @@ void process_exit (void)
     else if (data->ref_count == 2)
     {
       --data->ref_count;
-      list_push_back(&cur->children, &data->child_elem);
+      list_push_back(&cur->children,&data->child_elem);
     }
   }
-  //---------------------------
-  //---------------------------
+  //================================================
+
+  /* Destroy the current process's page directory and switch back
+     to the kernel-only page directory. */
   pd = cur->pagedir;
   if (pd != NULL) 
     {
@@ -557,7 +328,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   struct file *file = NULL;
   off_t file_ofs;
   bool success = false;
-  //int i; //safety int, get an error in cmd
 
   //-----------------------------------------------------------
   //----------------------------
@@ -590,30 +360,17 @@ load (const char *file_name, void (**eip) (void), void **esp)
   t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
     goto done;
-  process_activate();
+  process_activate ();
 
   /* Open executable file. */
   //file = filesys_open (file_name);
-  file = filesys_open(exec_name);
+  file = filesys_open (exec_name);
   if (file == NULL) 
-  {
-    //printf ("load: %s: open failed\n", file_name);
-    printf ("load: %s: open failed\n", exec_name);
-    goto done; 
-  } 
-  
-  
-  else {
-   //remember we are trying to establish a global close
-       //don't let a process continue past the if
-        //=========
-    //=========
-    //=========
-    //=========
-    //on hold
-    file_deny_write(file); //shift positions for deny, we had close it too late 
-  }
-  t->executable = file;
+    {
+      //printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", exec_name);
+      goto done; 
+    }
 
   file_deny_write(file);
   t->exec_file = file;
@@ -701,30 +458,18 @@ load (const char *file_name, void (**eip) (void), void **esp)
       the pointer to the allocated space, with our copied args
   */
   //=======================================
-  if (!setup_stack(esp, args_ptr))
-  {
-    goto done;
-  }
-  //make sure to account for if we 
+  if (!setup_stack (esp, args_ptr))
   //=======================================
-    
+    goto done;
 
   /* Start address. */
-  *eip = (void(*)(void))ehdr.e_entry;
+  *eip = (void (*) (void)) ehdr.e_entry;
+
   success = true;
 
-  done:
+ done:
   /* We arrive here whether the load is successful or not. */
   //file_deny_write(file);
-<<<<<<< HEAD
-=======
-      // =========
-    // =========
-    // =========
-    // =========
-  // on hold
-  free(exec_name);
->>>>>>> eb850a09c19542458bec5ff3ee21c5ea2e1f2ed6
   //file_close(file);
   return success;
 }
@@ -811,13 +556,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
       /* Get a page of memory. */
-      /*
-    Can't let our stack get too big.
-      Can't let it overflow, or else we will not have room on kernel stack
-      The struct thread is only a few bytes
-      But we cannot allocate large structures or arrays as non-static local variables.
-      We have to use the malloc or the palloc_get_page
-  */
       uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
         return false;
@@ -852,57 +590,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   return true;
 }
 
-<<<<<<< HEAD
 
-=======
-/* Create a minimal stack by mapping a zeroed page at the top of
-   user virtual memory. 
-   
-   If a user tries to access an unmapped addrss, it will page fault.
-   Even if we are in kernel mode you can page fault if you try to 
-      access an unmapped address.
-
-      cp -r pintos .
-                        argc = 4
-                        argv[0] = "cp"
-                        argv[1] = "-r"
-                        argv[2] = "pintos"
-                        argv[3] = "."
-                        argv[4] = 0
-
-      PHYS_BASE
-          .
-          os
-          pint
-          -r
-          cp
-          argv[4]
-          argv[3]
-          argv[2]
-          argv[1]
-          argv
-          argc
-          Return Value  <-----stack pointer
-          |
-          v
-   */
-  /*
-The void** esp is the stack pointer. 
-This is a double pointer because you will be doing pointer
-manipulation, and since you want these modifications to be global and not just 
-within this function’s scope, you are given a pointer to the stack pointer 
-(pass by pointer for a pointer). 
-
-Meaning to write things to the stack you will want to dereference void** esp.
-
-Initially, void** esp is initialized to PHYS_BASE, 
-which is basically the bottom of the stack
-(0xbffffffff).
-*esp = PHYS_BASE;
-
-After that, we can start writing to the stack.
-  */
->>>>>>> eb850a09c19542458bec5ff3ee21c5ea2e1f2ed6
 static bool
 //setup_stack (void **esp) 
 setup_stack (void **esp, char *in_args) 
@@ -911,32 +599,13 @@ setup_stack (void **esp, char *in_args)
   uint8_t *kpage;
   bool success = false;
   int index = 0;
-  const int WORD_LIMIT = 50; //our char per/limit from the manual
+  const int WORD_LIMIT = 50; //our char pe/rlimit from the manual
   
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   //if it is not NULL then it was allocated and we can continue
   if (kpage != NULL) 
     {
-<<<<<<< HEAD
 
-=======
-      /*install_page -  Adds a mapping from user virtual address UPAGE to kernel
-   virtual address KPAGE to the page table.
-   If WRITABLE is true, the user process may modify the page;
-   otherwise, it is read-only.
-   UPAGE must not already be mapped.
-   
-    Can't let our stack get too big.
-      Can't let it overflow, or else we will not have room on kernel stack
-      The struct thread is only a few bytes
-      But we cannot allocate large structures or arrays as non-static local variables.
-      We have to use the malloc or the palloc_get_page
-  
-   KPAGE should probably be a page obtained from the user pool
-   with palloc_get_page().
-   Returns true on success, false if UPAGE is already mapped or
-   if memory allocation fails. */
->>>>>>> eb850a09c19542458bec5ff3ee21c5ea2e1f2ed6
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
 
       if (success)
@@ -955,12 +624,11 @@ setup_stack (void **esp, char *in_args)
           //    once we have allocated make sure to copy into place
           current_arg[index] = malloc(size_of_curr);
           strlcpy(current_arg[index], current, size_of_curr);
-
           ++index;
         }
 
         // Stack pointer is set here. Now we can copy over the arguments.
-        *esp = PHYS_BASE - 12;
+        *esp = PHYS_BASE;
 
         // Loop to copy arugments.
         char *char_ptrs[WORD_LIMIT];
@@ -984,14 +652,6 @@ setup_stack (void **esp, char *in_args)
         *esp -= 4;
 
         memset(*esp, 0, 4);
-
-
-
-        //         ///////////////
-        // memset(current_stack_pos, 0, 4);
-        // current_stack_pos -= 4;
-        // hex_dump(current_stack_pos, current_stack_pos, 25, true);
-        // ///////////////
         
         // 3. Push args in reverse order.
         for(int i = index-1; i >= 0; --i)
@@ -1010,22 +670,6 @@ setup_stack (void **esp, char *in_args)
 
         // 6. Push 'fake' return address.
         *esp -= 4;
-<<<<<<< HEAD
-=======
-        // NOTE THIS IS A EXPLANATION FOR THE MEMSET() FUNCTION USED HERE.
-  // Establish the NULL pointer sentinel
-  // memset() is used to fill a block of memory with a particular value
-  //      ptr ==> starting address of memory to be filled
-  //      x   ==> value to be filled
-  //      n   ==> number of bytes to be filled, starting from ptr to be filled
-  // void *memset(void *ptr, int x, size_t n);
-  //  Note: that the ptr is a void pointer, so that we can pass any type of ptr to this function.
-  /*
-      int main()
-      {
-        char str[50] = "GeeksForGeeks is for programming geeks.";
-        printf("\nBefore memset(): %s\n", str);
->>>>>>> eb850a09c19542458bec5ff3ee21c5ea2e1f2ed6
 
         memset(*esp, 0, 4);
         //*esp -= 4;
@@ -1047,10 +691,8 @@ setup_stack (void **esp, char *in_args)
    If WRITABLE is true, the user process may modify the page;
    otherwise, it is read-only.
    UPAGE must not already be mapped.
-
    KPAGE should probably be a page obtained from the user pool
    with palloc_get_page().
-
    Returns true on success, false if UPAGE is already mapped or
    if memory allocation fails. */
 static bool
@@ -1062,26 +704,4 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
-// //===========================================
-// //===========================================
-// //===========================================
-// THIS ISNT REALLY NEEDED SINCE WE HAVE BRIANS TEST FILE
-// LEAVE FOR NOW, CONSIDER DELETING
-
-// void test_stack(int* t) {
-//     int i;
-//     int argc = t[1];
-//     char ** argv;
-
-//     argv = (char**) t[2];
-//     printf("ARGC:%d ARGV:%x\n",argc,(unsigned int)argv);
-//     for(int i = 0; i < argc; i++)
-//     {
-//         printf("argv[%d] = %x pointing at %s\n", i, (unsigned int)argv[i],argv[i]);
-//     }
-// }
 //===========================================
-// //===========================================
-// //===========================================
-// //===========================================
-

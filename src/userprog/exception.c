@@ -82,7 +82,6 @@ kill (struct intr_frame *f)
      
   /* The interrupt frame's code segment value tells us where the
      exception originated. */
-  thread_current()->parent_share->exit_code = -1;
   switch (f->cs)
     {
     case SEL_UCSEG:
