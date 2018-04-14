@@ -392,6 +392,25 @@ syscall_handler (struct intr_frame *f)
       }
       break;    
     }
+    //pintos p3 start for mmap
+    case SYS_MMAP:
+    {
+      int *fd =(int *) ((char *)f->esp + 4);
+      void **addr = (void **) ((char *)f->esp + 8);
+      check_addr_valid(addr);
+      check_addr_valid(*addr);
+      check_addr_valid(fd);
+      break;
+
+    }
+    case SYS_MUNMAP:
+    {
+      break;
+    }
+   
+
+
+
     default: 
     {
       /* bad system call */
