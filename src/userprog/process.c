@@ -362,6 +362,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  //for p3
+    // Allocate and initialize the page hash table.
+  // Holds the page strutures for each allocated page in this process.
+  t->page_table = malloc(sizeof(struct hash));
+  hash_init(t->page_table,&page_hash,&page_less,NULL);
+  
+
   /* Open executable file. */
   //file = filesys_open (file_name);
   file = filesys_open (exec_name);

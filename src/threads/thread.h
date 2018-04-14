@@ -7,6 +7,8 @@
 //===================
 #include "threads/synch.h"
 //===================
+//for p3
+#include "vm/page.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -91,13 +93,19 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
+
+        //for p3
+    void *user_esp; //holds the user virtual stack pointer
+    struct hash *page_table; //holds the pages for this process
+
+
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-    //for p3
-    void *user_esp;
+
+
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
