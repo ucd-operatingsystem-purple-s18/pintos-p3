@@ -20,7 +20,6 @@
 #include "threads/vaddr.h"
 
 
-
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -361,6 +360,13 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
+
+  //for p3
+    // Allocate and initialize the page hash table.
+  // Holds the page strutures for each allocated page in this process.
+  t->page_table = malloc(sizeof(struct hash));
+  hash_init(t->page_table,&page_hash,&page_less,NULL);
+  
 
   /* Open executable file. */
   //file = filesys_open (file_name);

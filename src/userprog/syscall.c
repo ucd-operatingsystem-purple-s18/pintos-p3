@@ -354,6 +354,7 @@ syscall_handler (struct intr_frame *f)
       }
       break;    
     }
+      break;
     default: 
     {
       /* bad system call */
