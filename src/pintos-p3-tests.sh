@@ -119,7 +119,49 @@ main ()
         test-syn-remove 
         test-syn-write
 
+        test-child-inherit
+        test-child-linear
+        test-child-mm-wrt
+        test-qsort-mm
+        test-child-sort
 
+        test-mmap-bad-fd
+        test-mmap-clean
+        test-mmap-exit
+        test-mmap-inherit
+        test-mmap-misalign
+        test-mmap-null
+        test-mmap-over-code
+        test-mmap-over-data
+        test-mmap-over-stk
+        test-mmap-overlap
+        test-mmap-read
+        test-mmap-remove
+        test-mmap-shuffle
+        test-mmap-twice
+        test-mmap-unmap
+        test-mmap-write
+        test-mmap-zero
+
+        test-page-linear
+        test-page-merge-mm
+        test-page-merge-par
+        test-page-merge-seq
+        test-page-merge-stk
+        test-page-parallel
+        test-page-shuffle
+        test-parallel-merge
+        test-process_death
+
+        test-pt-bad-addr
+        test-pt-bad-read
+        test-pt-big-stk-obj
+        test-pt-grow-bad
+        test-pt-grow-pusha
+        test-pt-grow-stack
+        test-pt-grow-stk-sc
+        test-pt-write-code
+        test-pt-write-code-2
 
         
         echo -e "\n   SCRIPT EXECUTION TERMINATED SUCCESSFULLY. \n"
@@ -759,6 +801,209 @@ test-syn-write()
     pintos -v -k -T 60 --qemu  --filesys-size=2 -p tests/filesys/base/syn-write -a syn-write -p tests/filesys/base/child-syn-wrt -a child-syn-wrt -- -q  -f run syn-write < /dev/null 2> tests/filesys/base/syn-write.errors |tee tests/filesys/base/syn-write.output
     echo -e "\n   RESULT: \n"
     perl -I../.. ../../tests/filesys/base/syn-write.ck tests/filesys/base/syn-write tests/filesys/base/syn-write.result
+}
+
+test-child-inherit()
+{
+    echo -e "\n   RUNNING TEST:   child-inherit \n"
+    pintos -v -k -T 60 --qemu  --filesys-size=2 -p tests/filesys/base/syn-write -a syn-write -p tests/filesys/base/child-syn-wrt -a child-syn-wrt -- -q  -f run syn-write < /dev/null 2> tests/filesys/base/syn-write.errors |tee tests/filesys/base/syn-write.output
+    echo -e "\n   RESULT: \n"
+    perl -I../.. ../../tests/filesys/base/syn-write.ck tests/filesys/base/syn-write tests/filesys/base/syn-write.result
+}
+
+test-child-linear()
+{
+
+}
+
+test-child-mm-wrt()
+{
+
+}
+
+test-qsort-mm()
+{
+
+}
+
+test-child-sort()
+{
+
+}
+
+test-mmap-bad-fd()
+{
+
+}
+
+test-mmap-clean()
+{
+
+}
+
+test-mmap-exit()
+{
+
+}
+
+test-mmap-inherit()
+{
+
+}
+
+test-mmap-misalign()
+{
+
+}
+
+test-mmap-null()
+{
+
+}
+
+test-mmap-over-code()
+{
+
+}
+
+test-mmap-over-data()
+{
+
+}
+
+test-mmap-over-stk()
+{
+
+}
+
+test-mmap-overlap()
+{
+
+}
+
+test-mmap-read()
+{
+
+}
+
+test-mmap-remove()
+{
+
+}
+
+test-mmap-shuffle()
+{
+
+}
+
+test-mmap-twice()
+{
+
+}
+
+test-mmap-unmap()
+{
+
+}
+
+test-mmap-write()
+{
+
+}
+
+test-mmap-zero()
+{
+
+}
+
+test-page-linear()
+{
+
+}
+
+test-page-merge-mm()
+{
+
+}
+
+test-page-merge-par()
+{
+
+}
+
+test-page-merge-seq()
+{
+
+}
+
+test-page-merge-stk()
+{
+
+}
+
+test-page-parallel()
+{
+
+}
+
+test-page-shuffle()
+{
+
+}
+
+test-parallel-merge()
+{
+
+}
+
+test-process_death()
+{
+
+}
+
+test-pt-bad-addr()
+{
+
+}
+
+test-pt-bad-read()
+{
+
+}
+
+test-pt-big-stk-obj()
+{
+
+}
+
+test-pt-grow-bad()
+{
+
+}
+
+test-pt-grow-pusha()
+{
+
+}
+
+test-pt-grow-stack()
+{
+
+}
+
+test-pt-grow-stk-sc()
+{
+
+}
+
+test-pt-write-code()
+{
+
+}
+
+test-pt-write-code-2()
+{
+
 }
 
 
