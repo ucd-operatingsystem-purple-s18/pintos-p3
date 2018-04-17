@@ -35,5 +35,8 @@ unsigned page_hash(const struct hash_elem *e, void *aux);
 bool page_less(const struct hash_elem *a, const struct hash_elem *b, void* aux);
 
 //want a page fun for 
-void *get_user_page();
+//void *get_user_page();
+//change function to return struct for our page
+//we want to get and possibly allocated a user page
+struct page *get_user_page(void);
 #endif
