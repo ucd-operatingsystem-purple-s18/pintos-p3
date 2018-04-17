@@ -10,7 +10,7 @@
 // Structure to represent a virtual address page.
 struct page{
 
-void* addr;
+void *addr;
 bool read_only;
 struct thread *thread;
 
@@ -26,13 +26,14 @@ struct file *file;
 off_t file_offset;
 off_t file_bytes;
 
-};
+}; //end page
 
 // Hash function for pages.
-unsigned page_hash(const struct hash_elem *e, void* aux);
+unsigned page_hash(const struct hash_elem *e, void *aux);
 
 // Comparison function for pages.
 bool page_less(const struct hash_elem *a, const struct hash_elem *b, void* aux);
 
-void* get_user_page();
+//want a page fun for 
+void *get_user_page();
 #endif
