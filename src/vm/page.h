@@ -34,9 +34,14 @@ unsigned page_hash(const struct hash_elem *e, void *aux);
 // Comparison function for pages.
 bool page_less(const struct hash_elem *a, const struct hash_elem *b, void* aux);
 
-//want a page fun for 
+//want a page func for 
 //void *get_user_page();
 //change function to return struct for our page
 //we want to get and possibly allocated a user page
-struct page *get_user_page(void);
+//struct page *get_user_page(void);
+//change, try returning based on the allocation instead.
+// Function to get (and possibly allocate) a user page.
+struct page *page_allocate(void* addr);
+
+
 #endif
