@@ -55,3 +55,41 @@ struct page *page_allocate(void* addr){
         
     }
 }
+/*
+USC Notes
+Virtual Address vs Physical Address
+Recall that virtual address is the processes’ addresses that they
+use. Physical memory is the actual memory in the hardware.
+You will have to do all the book-keeping to keep track of which physical
+memory is mapped to which processes’ virtual memory. This happens
+when you map a memory from physical to virtual.
+*/
+//========================================================
+bool page_in(void *addr){
+    struct thread *t = thread_current();
+
+    // Temporary page structure.
+    struct page p;
+
+    // Set p to the address we were given above.
+    p.addr = pg_round_down(addr);
+    struct hash_elem *h_elem = hash_find(t->page_table, &p.hash_elem);
+
+    if(!h_elem){
+
+        // Pointer to the new page.
+        struct page *pg = hash_entry(h_elem, struct page, hash_elem);
+
+        // Create a new zeroed page.
+        if(pg->file == NULL && pg->sector == NULL && pg->frame == NULL){
+            pg->frame = get_free_frame();
+            lock_acquire(&pg->frame->f_lock);
+            memset(pg->frame->base, 0, PGSIZE);
+            lock_release(&pg->frame->f_lock);
+        }
+    }
+}
+
+bool page_in_core(struct page *in_page){
+    
+}

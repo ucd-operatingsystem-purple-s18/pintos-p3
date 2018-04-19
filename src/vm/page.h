@@ -42,6 +42,17 @@ bool page_less(const struct hash_elem *a, const struct hash_elem *b, void* aux);
 //change, try returning based on the allocation instead.
 // Function to get (and possibly allocate) a user page.
 struct page *page_allocate(void* addr);
+/*
+USC Notes
+Virtual Address vs Physical Address
+Recall that virtual address is the processes’ addresses that they
+use. Physical memory is the actual memory in the hardware.
+You will have to do all the book-keeping to keep track of which physical
+memory is mapped to which processes’ virtual memory. This happens
+when you map a memory from physical to virtual.
+*/
+bool page_in(void *addr);
 
+bool page_in_core(struct page *in_page);
 
 #endif
