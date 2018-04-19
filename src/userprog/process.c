@@ -81,35 +81,23 @@ process_execute (const char *file_name)
 static void
 start_process (void *in_data)
 {
-  //char *file_name = file_name_;
   struct intr_frame if_;
-  //bool success;
-  //create our local struct, based on our incoming reference
+
   struct pass_in *data = (struct pass_in*) in_data;
   //-----------------------------------------------------------
 
-  //need to allocate the structure for the pass_in data, here???
   struct shared_data *share = malloc(sizeof(struct shared_data));
 
-  //sema_init(&share->wait_sema, 0);
-  //everything for the shared data needs to be allocated for
   sema_init(&share->dead_sema, 0);
 
   lock_init(&share->ref_lock);
-  //Setting that struct share attribute as our current thread id
   share->tid = thread_current()->tid;
   share->exit_code = -2;
-  //share->reference_count = 2;
   share->ref_count = 2;
-  //thread_current()->parent_share = share;
 
   data->shared = share;
 
-  //Now we need to add the structure to the parent thread's list
-  //list_push_front(&data->parent->children, &share->child_elem);
-  //current thread
   thread_current()->parent_share = share;
-  //-----------------------------------------------------------
 
 
   /* Initialize interrupt frame and load executable. */
@@ -124,7 +112,6 @@ start_process (void *in_data)
 
   if(!data->load_success) 
     thread_exit();
-    //-----------------------------------------------------------
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -148,12 +135,6 @@ start_process (void *in_data)
 int
 process_wait (tid_t child_tid) 
 {
-  //struct thread *rt_thread;
-  //rt_thread = thread_at_tid(child_tid);
-  //if(rt_thread->tid == -1)
-  //{
-  //  return -1;
-  //}
   struct thread *t = thread_current();
   struct list_elem *e;
   for (e = list_begin (&t->children); e != list_end (&t->children); e = list_next (e))
@@ -176,7 +157,6 @@ void process_exit (void)
   struct thread *cur = thread_current();
   uint32_t *pd;
 
-  //================================================
   // If the child outlives the parent, the child must deallocate the
   // shared memory.
   if(cur->parent_share->ref_count == 1)
@@ -328,52 +308,31 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
 
-  //-----------------------------------------------------------
-  //----------------------------
-  //----------------------------
-  // New char* for first arg in file_name (the executable name)  
+
+  /* New char* for first arg in file_name (the executable name) */  
   char *exec_name = malloc(strlen(file_name) + 1);
   char *dummy_arg;
   strlcpy(exec_name, file_name, strlen(file_name) + 1);
-  // Get first argument of name.
-    /*
-  exp. strtok_r
-  
-          //We are splitting a string base on a space character
-          char str[] = "Geeks for Geeks";
-          char *token;
-          char *rest = str;
-          while ((token = strtok_r(rest, " ", &rest)))
-            printf("%s\n", token)
 
-            -->result = 
-                Geeks
-                for
-                Geeks
-  */
   strtok_r(exec_name, " ", &dummy_arg);
-  //----------------------------
-  //----------------------------
-  //-----------------------------------------------------------
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
 
-  //for p3
+  /* for p3
     // Allocate and initialize the page hash table.
-  // Holds the page strutures for each allocated page in this process.
+   Holds the page strutures for each allocated page in this process. */
   t->page_table = malloc(sizeof(struct hash));
   hash_init(t->page_table,&page_hash,&page_less,NULL);
   
 
   /* Open executable file. */
-  //file = filesys_open (file_name);
   file = filesys_open (exec_name);
   if (file == NULL) 
     {
-      //printf ("load: %s: open failed\n", file_name);
       printf ("load: %s: open failed\n", exec_name);
       goto done; 
     }
@@ -453,19 +412,15 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
-  //=======================================
   // Allocate a new string so we don't modify the original argument.
   char *args_ptr = malloc(strlen(file_name) + 1);
   strlcpy(args_ptr, file_name, strlen(file_name) + 1);
-  //=======================================
 
   /* Set up stack. 
   Remember we are sending in our pointer to our stack and
       the pointer to the allocated space, with our copied args
   */
-  //=======================================
   if (!setup_stack (esp, args_ptr))
-  //=======================================
     goto done;
 
   /* Start address. */
@@ -475,8 +430,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  //file_deny_write(file);
-  //file_close(file);
   return success;
 }
 
@@ -598,17 +551,15 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 
 static bool
-//setup_stack (void **esp) 
 setup_stack (void **esp, char *in_args) 
 {
 
   uint8_t *kpage;
   bool success = false;
   int index = 0;
-  const int WORD_LIMIT = 50; //our char pe/rlimit from the manual
+  const int WORD_LIMIT = 50;
   
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  //if it is not NULL then it was allocated and we can continue
   if (kpage != NULL) 
     {
 

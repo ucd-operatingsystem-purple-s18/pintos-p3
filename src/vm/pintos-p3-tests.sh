@@ -26,7 +26,7 @@ main ()
         
         # Run all the following tests that are not commented out:
 
-        # test-args-none
+        test-args-none
         # test-args-single
         # test-args-multiple
         # test-args-many
