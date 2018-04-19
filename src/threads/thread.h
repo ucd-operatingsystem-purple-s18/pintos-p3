@@ -7,7 +7,7 @@
 //===================
 #include "threads/synch.h"
 //===================
-//for p3
+//P3=====
 #include "vm/page.h"
 
 /* States in a thread's life cycle. */
@@ -94,13 +94,21 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
 
-    struct hash *page_table; //holds the pages for this process
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-
+    //==============P3===========
+    //==============P3===========
+    //==============P3===========
+    //==============P3===========
+    void *user_esp;//hold the user virtual stack pointer
+    //==============P3===========
+    struct hash *page_table; //gonna hold the pages for this process
+    //==============P3===========
+    //==============P3===========
+    //==============P3===========
 
 
 #ifdef USERPROG
@@ -109,7 +117,7 @@ struct thread
     int next_fd; /* holds the next avilabel file descriptor integer */
     struct list children; /* list to hold all the child processes of this process */
     struct list files; /* list to hold all the open files fo this process */
-    struct file* exec_file; /* holds process executable for this thread */
+    struct file *exec_file; /* holds process executable for this thread */
     struct shared_data *parent_share; /* pointer to hold the data shared with this process parent (should only be one) */
 #endif
 

@@ -10,6 +10,20 @@
 static long long page_fault_cnt;
 
 static void kill (struct intr_frame *);
+/*
+USC Notes
+Page Faults
+What’s a Page Fault?
+When a process is trying to access virtual memory that does not have
+a page for (in the page directory), the kernel will give a page fault.
+What do I do with a Page Fault?
+In userprog/exception.c, there is the page_fault function. In
+this function you will look at the pointer that caused the page fault, and
+resolve it if possible.
+For example, if the pointer is in kernel memory, you want to kill the
+process to protect the OS. If the pointer is not harmful, you will want to
+allocate that page to the page table.
+*/
 static void page_fault (struct intr_frame *);
 
 /* Registers handlers for interrupts that can be caused by user
@@ -120,6 +134,20 @@ kill (struct intr_frame *f)
    can find more information about both of these in the
    description of "Interrupt 14--Page Fault Exception (#PF)" in
    [IA32-v3a] section 5.15 "Exception and Interrupt Reference". */
+   /*
+USC Notes
+Page Faults
+What’s a Page Fault?
+When a process is trying to access virtual memory that does not have
+a page for (in the page directory), the kernel will give a page fault.
+What do I do with a Page Fault?
+In userprog/exception.c, there is the page_fault function. In
+this function you will look at the pointer that caused the page fault, and
+resolve it if possible.
+For example, if the pointer is in kernel memory, you want to kill the
+process to protect the OS. If the pointer is not harmful, you will want to
+allocate that page to the page table.
+*/
 static void
 page_fault (struct intr_frame *f) 
 {
