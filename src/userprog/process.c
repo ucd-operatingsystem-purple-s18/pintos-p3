@@ -560,7 +560,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
-  file_seek (file, ofs);
+  //file_seek (file, ofs);
+  size_t total_read_bytes = ofs;
   while (read_bytes > 0 || zero_bytes > 0) 
     {
       /* Calculate how to fill this page.
@@ -580,7 +581,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       // if (p == NULL)
       //   return false;
       p->file = file;
-      p->file_offset = ofs;
+      //p->file_offset = ofs;
+      p->file_offset = total_read_bytes;
       p->file_bytes = page_read_bytes;
       /* Load this page. */
       //if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
@@ -609,6 +611,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       //   }
 
       /* Advance. */
+      total_read_bytes += PGSIZE;
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       upage += PGSIZE;
@@ -622,7 +625,7 @@ static bool
 setup_stack (void **esp, char *in_args) 
 {
 
-  uint8_t *kpage;
+  //uint8_t *kpage;
   bool success = false;
   int index = 0;
   const int WORD_LIMIT = 50; //our char pe/rlimit from the manual
@@ -704,13 +707,13 @@ setup_stack (void **esp, char *in_args)
         //*esp -= 4;
         //printf("esp =%x\n",*esp);
       }
-      else
+      //else
           /*
           we need to call palloc_free_page  in order to free the page.
           When the page is freed, the bits are set to false, 
               That means that the page is now unmapped.
     */
-        palloc_free_page (kpage);
+        //palloc_free_page (kpage);
     }
   return success;
 }

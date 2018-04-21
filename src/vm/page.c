@@ -117,6 +117,8 @@ bool page_in_core(struct page* page){
         }//end if1=================================
     else if(page->file != NULL){
             //file_open(page->file);
+            //temp comment
+            //file_reopen(page->file);
             page->frame = get_free_frame();
             page->frame->page = page;
             if(page->frame != NULL){
@@ -124,6 +126,7 @@ bool page_in_core(struct page* page){
                 file_read(page->file,page->frame->base,page->file_bytes);
                 memset(page->frame->base + page->file_bytes, 0, PGSIZE - page->file_bytes);
             }//end if (inner)=================================
+            //file_close(page->file);
         }//end else if=================================
     else if(page->sector != NULL){
             //hold off, not sure how to implement yet. but will need it as a check.
