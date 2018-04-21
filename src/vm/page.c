@@ -33,7 +33,8 @@ bool page_less(const struct hash_elem *a, const struct hash_elem *b, void* aux){
 // change to pulling based on our allocation, not a straight pull
 // Allocates a page of memory that contains the address void* addr.
 // Note: Doesn't allocate the struct frame yet. This is handled in page_in().
-struct page *page_allocate(void* addr){
+//struct page *page_allocate(void* addr){
+struct page *page_allocate(void *addr, bool writable){
     struct page *p = malloc(sizeof(struct page));
     //struct thread *t = thread_current();
     p->thread = thread_current();
@@ -52,6 +53,7 @@ struct page *page_allocate(void* addr){
         p->file = NULL;
         p->frame = NULL;
         p->sector = NULL;
+        p->private = !writable;
         return p;
         
     }
@@ -92,7 +94,8 @@ bool page_in(void *addr){
         */
        lock_page(pg);
        if (page_in_core(pg)) {
-           pagedir_set_page(pg->thread->pagedir, pg->addr, pg->frame->base, true);
+           //pagedir_set_page(pg->thread->pagedir, pg->addr, pg->frame->base, true);
+           pagedir_set_page(pg->thread->pagedir, pg->addr, pg->frame->base, !pg->private);
        }
         //we should then install the frame into the page table
         // using that pointer to the newly created page

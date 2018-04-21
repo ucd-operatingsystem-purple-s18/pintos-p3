@@ -41,7 +41,8 @@ bool page_less(const struct hash_elem *a, const struct hash_elem *b, void* aux);
 //struct page *get_user_page(void);
 //change, try returning based on the allocation instead.
 // Function to get (and possibly allocate) a user page.
-struct page *page_allocate(void* addr);
+//struct page *page_allocate(void* addr);
+struct page *page_allocate(void *addr, bool writable);
 /*
 USC Notes
 Virtual Address vs Physical Address

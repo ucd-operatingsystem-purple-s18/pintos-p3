@@ -112,9 +112,11 @@ start_process (void *in_data)
   //Now we need to add the structure to the parent thread's list
   //list_push_front(&data->parent->children, &share->child_elem);
   //current thread
-  thread_current()->parent_share = share;
+  //thread_current()->parent_share = share;
   //-----------------------------------------------------------
-
+  struct thread *t = thread_current();
+  t->parent_share = share;
+  t->user_esp = PHYS_BASE;
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -580,7 +582,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
         allocate based on our user page table
         check for our null value based on that intended allocation
       */
-      struct page *p = page_allocate(upage);
+      //struct page *p = page_allocate(upage);
+      struct page *p = page_allocate(upage, writable);
       // if (p == NULL)
       //   return false;
       p->file = file;
@@ -639,11 +642,13 @@ setup_stack (void **esp, char *in_args)
   //struct page *p = page_allocate(((uint8_t *) PHYS_BASE) - PGSIZE);
   uint8_t *first_stack_page = ((uint8_t *) PHYS_BASE) - PGSIZE;
   // Allocate the first stack page.
-  struct page *p = page_allocate(first_stack_page);
+  //struct page *p = page_allocate(first_stack_page);
+  struct page *p = page_allocate(first_stack_page, true);
 
   // Allocate the rest of the stack pages (The other 64)
   for(int i = 0; i < STACK_MAX_PAGES; ++i){
-    page_allocate(first_stack_page - (PGSIZE *i));
+    //page_allocate(first_stack_page - (PGSIZE *i));
+    page_allocate(first_stack_page - (PGSIZE *i), true);
   }
   if (p != NULL){
     //success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
