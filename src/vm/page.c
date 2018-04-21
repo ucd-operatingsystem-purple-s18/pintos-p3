@@ -6,7 +6,7 @@
 #include "threads/palloc.h"
 //=======p3
 #include <string.h>
-
+#include "userprog/pagedir.h"
 
 
 
@@ -82,18 +82,76 @@ bool page_in(void *addr){
         struct page *pg = hash_entry(h_elem, struct page, hash_elem);
 
         // Create a new zeroed page.
+        /*
         if(pg->file == NULL && pg->sector == NULL && pg->frame == NULL){
             pg->frame = get_free_frame();
             lock_acquire(&pg->frame->f_lock);
             memset(pg->frame->base, 0, PGSIZE);
             lock_release(&pg->frame->f_lock);
         }
+        */
+       lock_page(pg);
+       if (page_in_core(pg)) {
+           pagedir_set_page(pg->thread->pagedir, pg->addr, pg->frame->base, true);
+       }
         //we should then install the frame into the page table
         // using that pointer to the newly created page
-        pagedir_set_page(pg->thread->pagedir, pg->addr, pg->frame->base, true);
+        //pagedir_set_page(pg->thread->pagedir, pg->addr, pg->frame->base, true);
+        unlock_page(pg);
+    }
+    return true;
+}
+//=================================
+//=================================
+//=================================
+
+//bool page_in_core(struct page *in_page){
+    //=================================
+bool page_in_core(struct page* page){
+    if(page->file == NULL && page->sector == NULL && page->frame == NULL){
+        page->frame = get_free_frame();
+        lock_acquire(&page->frame->f_lock);
+        memset(page->frame->base,0,PGSIZE);
+        page->frame->page = page;
+        lock_release(&page->frame->f_lock);
+        }//end if1=================================
+    else if(page->file != NULL){
+            //file_open(page->file);
+            page->frame = get_free_frame();
+            page->frame->page = page;
+            if(page->frame != NULL){
+                file_seek(page->file,page->file_offset);
+                file_read(page->file,page->frame->base,page->file_bytes);
+                memset(page->frame->base + page->file_bytes, 0, PGSIZE - page->file_bytes);
+            }//end if (inner)=================================
+        }//end else if=================================
+    else if(page->sector != NULL){
+            //hold off, not sure how to implement yet. but will need it as a check.
+        }
+    else if (page->frame != NULL){
+            //hold off, not sure how to implement yet. but will need it as a check.
+        }
+    return true;
+}
+//=================================
+//=================================
+//=================================
+void lock_page(struct page* page){
+    if(page->frame != NULL){
+        //acquire lock for current thread
+        //first waiting for any current thread owner to release if necessary
+        // lock_acquire(struct lock *lock)
+        lock_acquire(&page->frame->f_lock);
     }
 }
-
-bool page_in_core(struct page *in_page){
-    
+//=================================
+//=================================
+//=================================
+void unlock_page(struct page* page){
+    if(page->frame != NULL && lock_held_by_current_thread(&page->frame->f_lock)){
+        // lock_release(struct lock *lock)
+        // releases lock
+        // which the current thread must own
+        lock_release(&page->frame->f_lock);
+    }
 }

@@ -197,7 +197,7 @@ page_fault (struct intr_frame *f)
           fault_addr,
           not_present ? "not present" : "rights violation",
           write ? "writing" : "reading",
-          user ? "user" : "kernel");
+          user ? "user" : "kernel"); /* True: access by user, false: access by kernel. */
   //try to use the page_fault instead.
   //kill (f);
   /*
@@ -208,7 +208,10 @@ page_fault (struct intr_frame *f)
     - Point the page table entry for the faulting virtual address to the physical.
         (see userprog/pagedir.c).
   */
-  if (not_present){
+ //not working --> add in user check
+  //if (not_present){
+  if (not_present && user){ /* True: access by user, false: access by kernel. */
+
     page_in(fault_addr);
   }
 }

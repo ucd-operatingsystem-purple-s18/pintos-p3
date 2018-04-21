@@ -576,27 +576,30 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
         allocate based on our user page table
         check for our null value based on that intended allocation
       */
-        struct page *p = page_allocate(upage);
-        if (p == NULL)
-          return false;
-
+      struct page *p = page_allocate(upage);
+      // if (p == NULL)
+      //   return false;
+      p->file = file;
+      p->file_offset = ofs;
+      p->file_bytes = page_read_bytes;
       /* Load this page. */
       //if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
       // Base this on the user, not the kernel
+      /*
       if (file_read (file, upage, page_read_bytes) != (int) page_read_bytes)
       {
-    /*
-          we need to call palloc_free_page  in order to free the page.
-          When the page is freed, the bits are set to false, 
-              That means that the page is now unmapped.
-    */
+    
+          //we need to call palloc_free_page  in order to free the page.
+          //When the page is freed, the bits are set to false, 
+              //That means that the page is now unmapped.
+    
           //palloc_free_page (kpage);
           return false; 
         }
 
       //memset (kpage + page_read_bytes, 0, page_zero_bytes);
       memset (upage + page_read_bytes, 0, page_zero_bytes);
-
+*/
       /* Add the page to the process's address space. */
       // if (!install_page (upage, kpage, writable)) 
       //   {
