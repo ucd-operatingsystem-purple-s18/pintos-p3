@@ -22,6 +22,9 @@
 //Approximately 79/80 tests. 
 
 static thread_func start_process NO_RETURN;
+// We should cap teh stack growth at 64 pages
+#define STACK_MAX_PAGES 64
+
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
 /* Starts a new thread running a user program loaded from
@@ -633,88 +636,94 @@ setup_stack (void **esp, char *in_args)
   //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   //if it is not NULL then it was allocated and we can continue
   //if (kpage != NULL)
-  struct page *p = page_allocate(((uint8_t *) PHYS_BASE) - PGSIZE);
-  if (p != NULL)
-    {
+  //struct page *p = page_allocate(((uint8_t *) PHYS_BASE) - PGSIZE);
+  uint8_t *first_stack_page = ((uint8_t *) PHYS_BASE) - PGSIZE;
+  // Allocate the first stack page.
+  struct page *p = page_allocate(first_stack_page);
 
-      //success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      success = page_in(((uint8_t *) PHYS_BASE) - PGSIZE);
+  // Allocate the rest of the stack pages (The other 64)
+  for(int i = 0; i < STACK_MAX_PAGES; ++i){
+    page_allocate(first_stack_page - (PGSIZE *i));
+  }
+  if (p != NULL){
+    //success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+    //success = page_in(((uint8_t *) PHYS_BASE) - PGSIZE);
+    success = page_in(first_stack_page);
+    if (success)
+    {  
+      // Parsing arguments:
+      char *current;
+      char *buffer;
+      char *current_arg[WORD_LIMIT];
 
-      if (success)
-      {  
-        // Parsing arguments:
-        char *current;
-        char *buffer;
-        char *current_arg[WORD_LIMIT];
 
-
-        for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
-        {
-          //we get our allocation details, remember not to forget the inherent NULL
-          int size_of_curr = strlen(current) + 1;
-          //We need to allocate in precision, and in line with each arg
-          //    once we have allocated make sure to copy into place
-          current_arg[index] = malloc(size_of_curr);
-          strlcpy(current_arg[index], current, size_of_curr);
-          ++index;
-        }
-
-        // Stack pointer is set here. Now we can copy over the arguments.
-        *esp = PHYS_BASE;
-
-        // Loop to copy arugments.
-        char *char_ptrs[WORD_LIMIT];
-        for(int i = index-1; i >= 0; --i)
-        {
-          int size_of_curr = strlen(current_arg[i]) + 1;
-          // Decrement esp to size of arugment to be copied.
-          *esp -= size_of_curr;  
-          strlcpy(*esp, current_arg[i], size_of_curr);
-          char_ptrs[i] = (char *) *esp;
-        }
-
-        if((int) *esp & 0x03)
-        {
-
-          // Clear the lowest two bits. 
-          // This gets us the 'closest' next word-aligned address.
-          *esp =  (void*) ((int) *esp & ~0x03);
-        }
-        // 2. Push NULL pointer
-        *esp -= 4;
-
-        memset(*esp, 0, 4);
-        
-        // 3. Push args in reverse order.
-        for(int i = index-1; i >= 0; --i)
-        {
-          *esp -= 4;
-          memcpy(*esp, &char_ptrs[i], 4);
-        }
-        // 4. Push pointer to argv[0] (argv).
-        char **argv = *esp;
-        *esp -= 4;
-        memcpy(*esp, &argv, 4);
-
-        // 5. Push argc (count of args, currently in 'index').
-        *esp -= 4;
-        memcpy(*esp, &index, 4);
-
-        // 6. Push 'fake' return address.
-        *esp -= 4;
-
-        memset(*esp, 0, 4);
-        //*esp -= 4;
-        //printf("esp =%x\n",*esp);
+      for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
+      {
+        //we get our allocation details, remember not to forget the inherent NULL
+        int size_of_curr = strlen(current) + 1;
+        //We need to allocate in precision, and in line with each arg
+        //    once we have allocated make sure to copy into place
+        current_arg[index] = malloc(size_of_curr);
+        strlcpy(current_arg[index], current, size_of_curr);
+        ++index;
       }
-      //else
-          /*
-          we need to call palloc_free_page  in order to free the page.
-          When the page is freed, the bits are set to false, 
-              That means that the page is now unmapped.
-    */
-        //palloc_free_page (kpage);
+
+      // Stack pointer is set here. Now we can copy over the arguments.
+      *esp = PHYS_BASE;
+
+      // Loop to copy arugments.
+      char *char_ptrs[WORD_LIMIT];
+      for(int i = index-1; i >= 0; --i)
+      {
+        int size_of_curr = strlen(current_arg[i]) + 1;
+        // Decrement esp to size of arugment to be copied.
+        *esp -= size_of_curr;  
+        strlcpy(*esp, current_arg[i], size_of_curr);
+        char_ptrs[i] = (char *) *esp;
+      }
+
+      if((int) *esp & 0x03)
+      {
+
+        // Clear the lowest two bits. 
+        // This gets us the 'closest' next word-aligned address.
+        *esp =  (void*) ((int) *esp & ~0x03);
+      }
+      // 2. Push NULL pointer
+      *esp -= 4;
+
+      memset(*esp, 0, 4);
+      
+      // 3. Push args in reverse order.
+      for(int i = index-1; i >= 0; --i)
+      {
+        *esp -= 4;
+        memcpy(*esp, &char_ptrs[i], 4);
+      }
+      // 4. Push pointer to argv[0] (argv).
+      char **argv = *esp;
+      *esp -= 4;
+      memcpy(*esp, &argv, 4);
+
+      // 5. Push argc (count of args, currently in 'index').
+      *esp -= 4;
+      memcpy(*esp, &index, 4);
+
+      // 6. Push 'fake' return address.
+      *esp -= 4;
+
+      memset(*esp, 0, 4);
+      //*esp -= 4;
+      //printf("esp =%x\n",*esp);
     }
+    //else
+        /*
+        we need to call palloc_free_page  in order to free the page.
+        When the page is freed, the bits are set to false, 
+            That means that the page is now unmapped.
+  */
+      //palloc_free_page (kpage);
+  }
   return success;
 }
 

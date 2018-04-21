@@ -178,28 +178,29 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 
   /* redundant, but we will keep this in here for now */
+  /*
   if(!is_user_vaddr(fault_addr))
     exit(-1);
 
-  /* If a page fault occured in kernel or in an unmapped space 
-     we set eax to 0xffffffff and copy its former value into eip. */
+  //If a page fault occured in kernel or in an unmapped space 
+  //   we set eax to 0xffffffff and copy its former value into eip.
   if(!user || not_present)
   {
     f->eip = (void*)f->eax;
     f->eax = 0xffffffff;
     exit(-1);
   }
-
+  */
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
-     /*
+  
+  #ifdef DEBUG_PF
   printf ("Page fault at %p: %s error %s page in %s context.\n",
           fault_addr,
           not_present ? "not present" : "rights violation",
           write ? "writing" : "reading",
-          user ? "user" : "kernel"); //True: access by user, false: access by kernel.
-          */ 
+          user ? "user" : "kernel"); //True: access by user, false: access by kernel. 
   //try to use the page_fault instead.
   //kill (f);
   /*
@@ -212,9 +213,11 @@ page_fault (struct intr_frame *f)
   */
  //not working --> add in user check
   //if (not_present){
-  if (not_present && user){ /* True: access by user, false: access by kernel. */
-
+  //if (not_present && user){ /* True: access by user, false: access by kernel. */
+  #endif
+  if(fault_addr == NULL || !is_user_vaddr(fault_addr)){
+    kill (f);
+  }else if(not_present && user){
     page_in(fault_addr);
   }
 }
-

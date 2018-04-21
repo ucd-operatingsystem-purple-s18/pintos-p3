@@ -111,7 +111,7 @@ bool page_in_core(struct page* page){
     if(page->file == NULL && page->sector == NULL && page->frame == NULL){
         page->frame = get_free_frame();
         lock_acquire(&page->frame->f_lock);
-        memset(page->frame->base,0,PGSIZE);
+        //memset(page->frame->base,0,PGSIZE);
         page->frame->page = page;
         lock_release(&page->frame->f_lock);
         }//end if1=================================
