@@ -198,6 +198,18 @@ page_fault (struct intr_frame *f)
           not_present ? "not present" : "rights violation",
           write ? "writing" : "reading",
           user ? "user" : "kernel");
-  kill (f);
+  //try to use the page_fault instead.
+  //kill (f);
+  /*
+    Page fault handler should do:
+    - Locate the page faulted and find the data that goes in the page (might be in file system or swap slot or none).
+    - Obtain a frame to store the page.
+    - Fetch the data into the frame.
+    - Point the page table entry for the faulting virtual address to the physical.
+        (see userprog/pagedir.c).
+  */
+  if (not_present){
+    page_in(fault_addr);
+  }
 }
 

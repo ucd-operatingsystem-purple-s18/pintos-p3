@@ -131,7 +131,10 @@ main (void)
 
 //for p3
 //Put initialization for user memeory here
-//init_user_mem();
+//======================================
+//======================================
+//======================================
+  init_user_mem();
 
   printf ("Boot complete.\n");
   
