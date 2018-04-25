@@ -85,7 +85,6 @@ start_process (void *in_data)
   struct intr_frame if_;
 
   struct pass_in *data = (struct pass_in*) in_data;
-  //-----------------------------------------------------------
 
   struct shared_data *share = malloc(sizeof(struct shared_data));
 
@@ -326,10 +325,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     // Allocate and initialize the page hash table.
   t->page_table = malloc(sizeof(struct hash));
   hash_init(t->page_table, &page_hash, &page_less, NULL);
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
+
 
   /* Open executable file. */
   file = filesys_open (exec_name);

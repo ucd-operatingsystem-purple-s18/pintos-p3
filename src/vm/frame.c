@@ -4,59 +4,57 @@
 #include "threads/loader.h"
 #include <stdio.h>
 
-// Not sure if we need this or not.
-//#define FRAME_ARR_SIZE 1
-//increase our frame array size
-//========p3===========================
-#define FRAME_ARR_SIZE 500
+static struct bitmap used_frames; /* to keep track of usable frames */
 
+/* initializes frame table to size size */
+void 
+init_frame_table(uint32_t size)
+{
 
-
-static int frame_ct;
-//static struct frame frames[FRAME_ARR_SIZE];
-//change to a pointer to our frames========================
-static struct frame *frames[FRAME_ARR_SIZE];
-
-
-static struct lock scan_lock;
-static int hand;
-
-//original 
-//struct frame get_free_frame(){
-static int used_pages = 0;
-struct frame *get_free_frame(){
-    lock_acquire(&scan_lock);
-    struct thread *t = thread_current();
-    for(int i = 0; i < used_pages; ++i){
-        if(frames[i]->page == NULL){
-           lock_release(&scan_lock); 
-           return frames[i];
-        }
-    }
-    lock_release(&scan_lock);
-    PANIC("Nate hates everything. frame.c");
-    NORETURN();
 }
 
-void init_user_mem(){
-    lock_init(&scan_lock);
-    lock_acquire(&scan_lock);
-    for(int i = 0; i < FRAME_ARR_SIZE; ++i){
-        void* page = palloc_get_page(PAL_USER | PAL_ZERO);
-        if(page == NULL){
-            break;
-        }else{
-            frames[i] = (struct frame *) malloc(sizeof(struct frame));
-            lock_init(&frames[i]->f_lock);
-            frames[i]->base = page;
-            frames[i]->page = NULL;
-            ++used_pages;
-        }
-    }
-    lock_release(&scan_lock);
-    printf("%d User Pages Allocated.\n", used_pages);
+struct frame_entry *
+get_free_frame(void)
+{
+    get_frame_multiple(1);
 }
 
-void lock_frame(struct frame *frame){
+struct frame_entry *
+get_frame_multiple(uint32_t size)
+{
+  if (size == 0)
+    return NULL;
+
+  size_t page_idx = bitmap_scan_and_flip (used_frames, 0, size, false);
+
+  if (page_idx != BITMAP_ERROR)
+    frame_table[page_idx].holding_page = palloc_get_page(PAL_USER | PAL_ZERO);
+  else
+    {
+        /* evict frame */
+        bool success = try_evicting_frame(&frame_table[page_idx]);
+        if(success)
+            evict_frame(&frame_table[page_idx])
+        else
+            PANIC("FRAME_GET: Unable to evict and allocate new frame");
+    }
+
+  return &frame_table[page_idx];
+}
+bool 
+try_evicting_frame(struct *frame)
+{
+
+}
+
+void 
+evict_Frame(struct *frame)
+{
+
+}
+
+void 
+free_frame_elem(struct frame_elem)
+{
 
 }

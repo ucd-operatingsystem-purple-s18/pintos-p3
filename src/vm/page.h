@@ -10,21 +10,21 @@
 struct page
 {
 
-void *addr;
-bool read_only;
-struct thread *thread;
+	void *addr;
+	bool read_only;
+	struct thread *thread;
 
-struct hash_elem hash_elem;
+	struct hash_elem hash_elem;
 
-struct frame *frame;
+	struct frame *frame;
 
-block_sector_t sector;
+	block_sector_t sector;
 
-bool private;
+	bool private;
 
-struct file *file;
-off_t file_offset;
-off_t file_bytes;
+	struct file *file;
+	off_t file_offset;
+	off_t file_bytes;
 
 };
 
