@@ -19,12 +19,11 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h" 
 
+#include "userprog/syscall.h"
+#include "vm/frame.h"
 //Approximately 79/80 tests. 
 
 static thread_func start_process NO_RETURN;
-// We should cap teh stack growth at 64 pages
-#define STACK_MAX_PAGES 64
-
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
 /* Starts a new thread running a user program loaded from
@@ -112,11 +111,9 @@ start_process (void *in_data)
   //Now we need to add the structure to the parent thread's list
   //list_push_front(&data->parent->children, &share->child_elem);
   //current thread
-  //thread_current()->parent_share = share;
+  thread_current()->parent_share = share;
   //-----------------------------------------------------------
-  struct thread *t = thread_current();
-  t->parent_share = share;
-  t->user_esp = PHYS_BASE;
+
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -565,8 +562,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   ASSERT (pg_ofs (upage) == 0);
   ASSERT (ofs % PGSIZE == 0);
 
-  //file_seek (file, ofs);
-  size_t total_read_bytes = ofs;
+  file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
       /* Calculate how to fill this page.
@@ -577,47 +573,35 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
       /* Get a page of memory. */
       //uint8_t *kpage = palloc_get_page (PAL_USER);
-      //if (kpage == NULL)
-      /*
-        allocate based on our user page table
-        check for our null value based on that intended allocation
-      */
-      //struct page *p = page_allocate(upage);
-      struct page *p = page_allocate(upage, writable);
-      // if (p == NULL)
-      //   return false;
-      p->file = file;
-      //p->file_offset = ofs;
-      p->file_offset = total_read_bytes;
-      p->file_bytes = page_read_bytes;
+      uint8_t *kpage = frame_alloc (PAL_USER);
+      if (kpage == NULL)
+        return false;
+
       /* Load this page. */
-      //if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-      // Base this on the user, not the kernel
-      /*
-      if (file_read (file, upage, page_read_bytes) != (int) page_read_bytes)
-      {
-    
-          //we need to call palloc_free_page  in order to free the page.
-          //When the page is freed, the bits are set to false, 
-              //That means that the page is now unmapped.
-    
+      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+        {
+    /*
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
           //palloc_free_page (kpage);
+          frame_free (kpage);
           return false; 
         }
 
-      //memset (kpage + page_read_bytes, 0, page_zero_bytes);
-      memset (upage + page_read_bytes, 0, page_zero_bytes);
-*/
-      /* Add the page to the process's address space. */
-      // if (!install_page (upage, kpage, writable)) 
-      //   {
+      memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
-      //     palloc_free_page (kpage);
-      //     return false; 
-      //   }
+      /* Add the page to the process's address space. */
+      if (!install_page (upage, kpage, writable)) 
+        {
+
+          //palloc_free_page (kpage);
+          frame_free (kpage);
+          return false; 
+        }
 
       /* Advance. */
-      total_read_bytes += PGSIZE;
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       upage += PGSIZE;
@@ -631,104 +615,96 @@ static bool
 setup_stack (void **esp, char *in_args) 
 {
 
-  //uint8_t *kpage;
+  uint8_t *kpage;
   bool success = false;
   int index = 0;
   const int WORD_LIMIT = 50; //our char pe/rlimit from the manual
   
   //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  kpage = frame_alloc (PAL_USER | PAL_ZERO);
   //if it is not NULL then it was allocated and we can continue
-  //if (kpage != NULL)
-  //struct page *p = page_allocate(((uint8_t *) PHYS_BASE) - PGSIZE);
-  uint8_t *first_stack_page = ((uint8_t *) PHYS_BASE) - PGSIZE;
-  // Allocate the first stack page.
-  //struct page *p = page_allocate(first_stack_page);
-  struct page *p = page_allocate(first_stack_page, true);
+  
+  if (kpage != NULL) 
+    {
 
-  // Allocate the rest of the stack pages (The other 64)
-  for(int i = 0; i < STACK_MAX_PAGES; ++i){
-    //page_allocate(first_stack_page - (PGSIZE *i));
-    page_allocate(first_stack_page - (PGSIZE *i), true);
-  }
-  if (p != NULL){
-    //success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-    //success = page_in(((uint8_t *) PHYS_BASE) - PGSIZE);
-    success = page_in(first_stack_page);
-    if (success)
-    {  
-      // Parsing arguments:
-      char *current;
-      char *buffer;
-      char *current_arg[WORD_LIMIT];
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+
+      if (success)
+      {  
+        // Parsing arguments:
+        char *current;
+        char *buffer;
+        char *current_arg[WORD_LIMIT];
 
 
-      for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
-      {
-        //we get our allocation details, remember not to forget the inherent NULL
-        int size_of_curr = strlen(current) + 1;
-        //We need to allocate in precision, and in line with each arg
-        //    once we have allocated make sure to copy into place
-        current_arg[index] = malloc(size_of_curr);
-        strlcpy(current_arg[index], current, size_of_curr);
-        ++index;
-      }
+        for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
+        {
+          //we get our allocation details, remember not to forget the inherent NULL
+          int size_of_curr = strlen(current) + 1;
+          //We need to allocate in precision, and in line with each arg
+          //    once we have allocated make sure to copy into place
+          current_arg[index] = malloc(size_of_curr);
+          strlcpy(current_arg[index], current, size_of_curr);
+          ++index;
+        }
 
-      // Stack pointer is set here. Now we can copy over the arguments.
-      *esp = PHYS_BASE;
+        // Stack pointer is set here. Now we can copy over the arguments.
+        *esp = PHYS_BASE;
 
-      // Loop to copy arugments.
-      char *char_ptrs[WORD_LIMIT];
-      for(int i = index-1; i >= 0; --i)
-      {
-        int size_of_curr = strlen(current_arg[i]) + 1;
-        // Decrement esp to size of arugment to be copied.
-        *esp -= size_of_curr;  
-        strlcpy(*esp, current_arg[i], size_of_curr);
-        char_ptrs[i] = (char *) *esp;
-      }
+        // Loop to copy arugments.
+        char *char_ptrs[WORD_LIMIT];
+        for(int i = index-1; i >= 0; --i)
+        {
+          int size_of_curr = strlen(current_arg[i]) + 1;
+          // Decrement esp to size of arugment to be copied.
+          *esp -= size_of_curr;  
+          strlcpy(*esp, current_arg[i], size_of_curr);
+          char_ptrs[i] = (char *) *esp;
+        }
 
-      if((int) *esp & 0x03)
-      {
+        if((int) *esp & 0x03)
+        {
 
-        // Clear the lowest two bits. 
-        // This gets us the 'closest' next word-aligned address.
-        *esp =  (void*) ((int) *esp & ~0x03);
-      }
-      // 2. Push NULL pointer
-      *esp -= 4;
-
-      memset(*esp, 0, 4);
-      
-      // 3. Push args in reverse order.
-      for(int i = index-1; i >= 0; --i)
-      {
+          // Clear the lowest two bits. 
+          // This gets us the 'closest' next word-aligned address.
+          *esp =  (void*) ((int) *esp & ~0x03);
+        }
+        // 2. Push NULL pointer
         *esp -= 4;
-        memcpy(*esp, &char_ptrs[i], 4);
+
+        memset(*esp, 0, 4);
+        
+        // 3. Push args in reverse order.
+        for(int i = index-1; i >= 0; --i)
+        {
+          *esp -= 4;
+          memcpy(*esp, &char_ptrs[i], 4);
+        }
+        // 4. Push pointer to argv[0] (argv).
+        char **argv = *esp;
+        *esp -= 4;
+        memcpy(*esp, &argv, 4);
+
+        // 5. Push argc (count of args, currently in 'index').
+        *esp -= 4;
+        memcpy(*esp, &index, 4);
+
+        // 6. Push 'fake' return address.
+        *esp -= 4;
+
+        memset(*esp, 0, 4);
+        //*esp -= 4;
+        //printf("esp =%x\n",*esp);
       }
-      // 4. Push pointer to argv[0] (argv).
-      char **argv = *esp;
-      *esp -= 4;
-      memcpy(*esp, &argv, 4);
-
-      // 5. Push argc (count of args, currently in 'index').
-      *esp -= 4;
-      memcpy(*esp, &index, 4);
-
-      // 6. Push 'fake' return address.
-      *esp -= 4;
-
-      memset(*esp, 0, 4);
-      //*esp -= 4;
-      //printf("esp =%x\n",*esp);
+      else
+          /*
+          we need to call palloc_free_page  in order to free the page.
+          When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+    */
+        //palloc_free_page (kpage);
+        frame_free (kpage);
     }
-    //else
-        /*
-        we need to call palloc_free_page  in order to free the page.
-        When the page is freed, the bits are set to false, 
-            That means that the page is now unmapped.
-  */
-      //palloc_free_page (kpage);
-  }
   return success;
 }
 
