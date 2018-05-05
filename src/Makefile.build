@@ -69,12 +69,7 @@ userprog_SRC += userprog/tss.c		# TSS management.
 # P3====================================
 # P3====================================
 # No virtual memory code yet.
-#vm_SRC = vm/file.c			# Some file.
-vm_SRC = vm/frame.c			# frame file.
-vm_SRC += vm/page.c		# page file.
-#=====
-#allow for swaps
-vm_SRC += vm/swap.c 
+vm_SRC = vm/page.c 			# used for sup page tables
 
 
 
