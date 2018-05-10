@@ -5,7 +5,8 @@
 #include "threads/malloc.h"
 #include "threads/synch.h"
 
-
+static struct lock frame_table_lock; 
+static struct list frame_table;  
 
 void 
 frame_table_init (void)

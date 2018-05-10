@@ -18,6 +18,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h" 
+#include "vm/page.h"
 
 //Approximately 79/80 tests. 
 
@@ -91,7 +92,8 @@ start_process (void *in_data)
   sema_init(&share->dead_sema, 0);
 
   lock_init(&share->ref_lock);
-  share->tid = thread_current()->tid;
+  struct thread *t = thread_current();
+  share->tid = t->tid;
   share->exit_code = -2;
   share->ref_count = 2;
 
@@ -99,6 +101,7 @@ start_process (void *in_data)
 
   thread_current()->parent_share = share;
 
+  hash_init(&t->sup_page_table, page_hash, page_hash_less, NULL);
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -512,6 +515,37 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
+#ifdef VM
+  struct thread *t = thread_current();
+
+  /* create DISK supplemental page table */
+  struct sup_page_table *sup_table = (struct sup_page_table*)malloc(sizeof(struct sup_page_table));
+  if(sup_table == NULL)
+  {
+    free(sup_table);
+    return false;
+  }
+
+  sup_table->upage = upage;
+  sup_table->kpage = NULL;
+  sup_table->frame = NULL;
+  sup_table->dirty = false;
+  sup_table->loc = DISK;
+  sup_table->owner = file;
+  sup_table->offset = ofs;
+  sup_table->num_bytes = read_bytes;
+  sup_table->writeable = writeable;
+  sup_table->swap_index = -1;
+
+  if(hash_insert(&t->sup_page_table, &sup_table->hash_elem) != NULL)
+  {
+    PANIC("Element already exists in Sup Page Hashtable!\n");
+    return false;
+  }
+  return true;
+
+
+#else
       /* Get a page of memory. */
       uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
@@ -538,10 +572,12 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
           palloc_free_page (kpage);
           return false; 
         }
+#endif
 
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
+      ofs += PGSIZE;
       upage += PGSIZE;
     }
   return true;
@@ -557,19 +593,39 @@ setup_stack (void **esp, char *in_args)
   int index = 0;
   const int WORD_LIMIT = 50;
   
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  /* kpage = palloc_get_page (PAL_USER | PAL_ZERO); */
+
+  /* create FRAME supllemental page table and put into frame */
+  struct sup_page_table *sup_table = (struct sup_page_table*)malloc(sizeof(struct sup_page_table));
+  if(sup_table == NULL)
+  {
+    free(sup_table);
+    return false;
+  }
+
+  sup_table->upage = NULL;
+  sup_table->kpage = PHYS_BASE-PGSIZE;
+  sup_table->dirty = false;
+  sup_table->loc = FRAME;
+  sup_table->owner = NULL;
+  sup_table->offset = 0;
+  sup_table->num_bytes = 0;
+  sup_table->writeable = true;
+  sup_table->swap_index = -1;
+  frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
+  kpage = frame->page;
+  sup_table->frame = frame;
+
+  
   if (kpage != NULL) 
     {
-
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-
       if (success)
       {  
         // Parsing arguments:
         char *current;
         char *buffer;
         char *current_arg[WORD_LIMIT];
-
 
         for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
         {
