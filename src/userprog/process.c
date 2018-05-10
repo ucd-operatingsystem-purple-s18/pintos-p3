@@ -593,8 +593,7 @@ setup_stack (void **esp, char *in_args)
   int index = 0;
   const int WORD_LIMIT = 50;
   
-  /* kpage = palloc_get_page (PAL_USER | PAL_ZERO); */
-
+#ifdef VM
   /* create FRAME supllemental page table and put into frame */
   struct sup_page_table *sup_table = (struct sup_page_table*)malloc(sizeof(struct sup_page_table));
   if(sup_table == NULL)
@@ -615,8 +614,10 @@ setup_stack (void **esp, char *in_args)
   frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
   kpage = frame->page;
   sup_table->frame = frame;
+#else
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+#endif
 
-  
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
