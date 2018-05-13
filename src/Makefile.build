@@ -64,20 +64,10 @@ userprog_SRC += userprog/tss.c		# TSS management.
 
 # No virtual memory code yet.
 vm_SRC = vm/page.c 			# used for sup page tables
-<<<<<<< Updated upstream
 vm_SRC += vm/frame.c        # frame tables
 vm_SRC += vm/mmap.c         # for future 
 vm_SRC += vm/file.c         # for future 
 vm_SRC += vm/swap.c         # swap table 
-
-=======
-vm_SRC += vm/frame.c        # sued for frame tables
-vm_SRC += vm/file.c         # Not sure this was already there
-#vm_SRC += vm/swap.c         # USed for swap tables
-#vm_SRC += mmap.c            # Will figure out use later. 
->>>>>>> Stashed changes
-
-
 
 
 # Filesystem code.

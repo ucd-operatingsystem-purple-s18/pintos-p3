@@ -195,7 +195,8 @@ void process_exit (void)
       list_push_back(&cur->children,&data->child_elem);
     }
   }
-  //================================================
+  /* free sup_page_table */
+  free(cur->sup_page_table);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -327,7 +328,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-  t->sup_page_table = malloc(sizeof(struct hash));
+  /* load thread sup_page_table */
+  t->sup_page_table = (struct hash*)malloc(sizeof(struct hash*));
   hash_init(t->sup_page_table, &page_hash, &page_hash_less, NULL);
 
 

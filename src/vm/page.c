@@ -4,6 +4,7 @@
 #include "vm/frame.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
+#include "userprog/syscall.h"
 #include <string.h>
 
 
@@ -35,24 +36,24 @@ page_in(void* page)
 
     if(sup_table->loc == FRAME)
         return false;
-    if(sup_table->loc == DISK)
+    else if(sup_table->loc == DISK)
     {
-        if (file_read (sup_table->owner, frame, sup_table->num_bytes) != sup_table->num_bytes)
+    	lock_acquire(&filesys_lock);
+        if (sup_table->num_bytes != file_read_at(sup_table->owner, frame, sup_table->num_bytes, sup_table->offset))
         {
             frame_free_page (frame, sup_table);
             return false;
         }
         sup_table->loc = FRAME;
         sup_table->kpage = frame;
-        return true;
+        lock_release(&filesys_lock);
     }
-    if(sup_table->loc == SWAP)
+    else if(sup_table->loc == SWAP)
         return false;
+    else
+    	PANIC ("Page entry is in an unknown state!\n");
 
-    PANIC ("Page entry is in an unknown state!\n");
-
-
-return true;
+	return true;
 }
 
 void 

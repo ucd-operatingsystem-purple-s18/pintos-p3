@@ -109,7 +109,7 @@ struct thread
 #endif
 
 #ifdef VM
-    struct hash sup_page_table;         /* Used for supplemental page table */
+    struct hash* sup_page_table;         /* Used for supplemental page table */
 #endif
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
