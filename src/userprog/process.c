@@ -329,8 +329,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* load thread sup_page_table */
-  t->sup_page_table = (struct hash*)malloc(sizeof(struct hash*));
-  hash_init(t->sup_page_table, &page_hash, &page_hash_less, NULL);
+  hash_init(&t->sup_page_table, &page_hash, &page_hash_less, NULL);
 
 
   /* Open executable file. */
@@ -439,7 +438,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
 /* load() helpers. */
 
-static bool install_page (void *upage, void *kpage, bool writable);
+//static bool install_page (void *upage, void *kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
@@ -518,33 +517,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-#ifdef VM
-  struct thread *t = thread_current();
-
-  /* create DISK supplemental page table */
-  struct sup_page_entry *sup_table = (struct sup_page_entry*)malloc(sizeof(struct sup_page_entry));
-  if(sup_table == NULL)
-  {
-    free(sup_table);
+#ifdef VM  
+  if(!page_add_file(file, ofs, upage, page_read_bytes, page_zero_bytes, writable))
     return false;
-  }
-
-  sup_table->upage = upage;
-  sup_table->kpage = NULL;
-  sup_table->frame = NULL;
-  sup_table->dirty = false;
-  sup_table->loc = DISK;
-  sup_table->owner = file;
-  sup_table->offset = ofs;
-  sup_table->num_bytes = read_bytes;
-  sup_table->writeable = writable;
-  sup_table->swap_index = -1;
-  hash_insert(&t->sup_page_table, &sup_table->hash_elem);
-  // if(hash_insert(&t->sup_page_table, &sup_table->hash_elem) != NULL)
-  // {
-  //   PANIC("Element already exists in Sup Page Hashtable!\n");
-  //   return false;
-  // }
 
 #else
       /* Get a page of memory. */
@@ -609,13 +584,13 @@ setup_stack (void **esp, char *in_args)
   sup_table->loc = FRAME;
   sup_table->offset = 0;
   sup_table->owner = NULL;
-  sup_table->num_bytes = 0;
+  sup_table->read_bytes = 0;
+  sup_table->zero_bytes = 0;
   sup_table->writeable = true;
   sup_table->swap_index = -1;
   struct frame_entry *frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
   kpage = frame->page;
   sup_table->frame = frame;
-  kpage = frame->page;
 #else
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
 #endif
@@ -709,7 +684,7 @@ setup_stack (void **esp, char *in_args)
    with palloc_get_page().
    Returns true on success, false if UPAGE is already mapped or
    if memory allocation fails. */
-static bool
+bool
 install_page (void *upage, void *kpage, bool writable)
 {
   struct thread *t = thread_current ();

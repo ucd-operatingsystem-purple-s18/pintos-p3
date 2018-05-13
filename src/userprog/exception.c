@@ -186,17 +186,10 @@ page_fault (struct intr_frame *f)
           user ? "user" : "kernel"); //True: access by user, false: access by kernel. 
   #endif
 
-  #if VM
-  if(fault_addr != NULL)
-  {
-    void* page = pg_round_down(fault_addr);
-    if(!page_in(page))
-      goto done;
-  }
-  #endif
-  done:
-
-  /* If a page fault occured in kernel or in an unmapped space 
+  /* redundant, but we will keep this in here for now */
+  if(!is_user_vaddr(fault_addr))
+    exit(-1);
+    /* If a page fault occured in kernel or in an unmapped space 
      we set eax to 0xffffffff and copy its former value into eip. */
   if(!user || not_present)
   {
@@ -204,4 +197,18 @@ page_fault (struct intr_frame *f)
     f->eax = 0xffffffff;
     exit(-1);
   }
+
+  #if VM
+  if(fault_addr != NULL)
+  {
+    struct page_table_entry *sup_table = (struct page_table_entry*)page_lookup(fault_addr);
+    if(sup_table != NULL)
+    {
+      if(!page_in(sup_table))
+        goto done;
+    }
+  }
+  #endif
+  done:
+  return;
 }

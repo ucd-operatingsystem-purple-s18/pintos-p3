@@ -28,7 +28,8 @@ struct sup_page_entry
 	/* if in file */
 	struct file *owner;
 	off_t offset;
-	size_t num_bytes;
+	size_t read_bytes;
+	size_t zero_bytes;
 	bool writeable;
 
 	/* if in swap */
@@ -40,9 +41,10 @@ struct sup_page_entry
 };
 
 unsigned page_hash(const struct hash_elem *e, void *aux);
-bool page_in(void* page);
+bool page_in(struct sup_page_entry *sup_table);
 void page_out(struct hash_elem *e, void*aux);
 void* page_lookup(void*);
+bool page_add_file(struct file *f, int32_t ofs, uint8_t *upage, uint32_t page_read_bytes, uint32_t page_zero_bytes, bool writable);
 bool page_hash_less(const struct hash_elem *a, const struct hash_elem *b, void* aux);
 
 

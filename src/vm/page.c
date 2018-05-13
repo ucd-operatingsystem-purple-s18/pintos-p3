@@ -5,6 +5,7 @@
 #include "threads/malloc.h"
 #include "threads/palloc.h"
 #include "userprog/syscall.h"
+#include "userprog/process.h"
 #include <string.h>
 
 
@@ -18,35 +19,44 @@ page_hash(const struct hash_elem *e, void *aux)
 }
 
 bool
-page_in(void* page)
+page_in(struct sup_page_entry *sup_table)
 {
-    struct sup_page_entry *sup_table = page_lookup(page);
-
     if(sup_table == NULL) 
         return false;
-
-    void *frame = frame_get_page(PAL_USER, sup_table);
-    if (frame == NULL)
-      return false;
-
-    if(!pagedir_set_page(thread_current()->pagedir, page, frame, true))
-    {
-        return false;
-    }
 
     if(sup_table->loc == FRAME)
         return false;
     else if(sup_table->loc == DISK)
     {
-    	lock_acquire(&filesys_lock);
-        if (sup_table->num_bytes != file_read_at(sup_table->owner, frame, sup_table->num_bytes, sup_table->offset))
-        {
-            frame_free_page (frame, sup_table);
-            return false;
-        }
-        sup_table->loc = FRAME;
-        sup_table->kpage = frame;
-        lock_release(&filesys_lock);
+		/* Get a page of memory. */
+		uint8_t *kpage = frame_get_page(PAL_USER, sup_table);
+		if (kpage == NULL)
+			return false;
+
+		/* Load this page. */
+		if (file_read (sup_table->owner, kpage, sup_table->read_bytes) != (int) sup_table->read_bytes)
+		{
+			/*
+			we need to call palloc_free_page  in order to free the page.
+			When the page is freed, the bits are set to false, 
+			  That means that the page is now unmapped.
+			*/
+			frame_free_page(kpage, sup_table);
+			return false; 
+		}
+
+		memset (kpage + sup_table->read_bytes, 0, sup_table->zero_bytes);
+
+		/* Add the page to the process's address space. */
+		if (!install_page (sup_table->upage, kpage, sup_table->writeable)) 
+		{
+
+			frame_free_page (kpage, sup_table);
+			return false; 
+		}
+
+		sup_table->loc = FRAME;
+
     }
     else if(sup_table->loc == SWAP)
         return false;
@@ -84,6 +94,31 @@ page_lookup(void* page)
     p.upage = page;
     e = hash_find (&thread_current()->sup_page_table, &p.hash_elem);
     return e != NULL ? hash_entry (e, struct sup_page_entry, hash_elem) : NULL;
+}
+
+bool 
+page_add_file(struct file *f, int32_t ofs, uint8_t *upage, uint32_t page_read_bytes, uint32_t page_zero_bytes, bool writable)
+{
+
+	struct sup_page_entry *sup_table = (struct sup_page_entry*)malloc(sizeof(struct sup_page_entry));
+	if(sup_table == NULL)
+	{
+		free(sup_table);
+		return false;
+	}
+
+	sup_table->upage = upage;
+	sup_table->kpage = NULL;
+	sup_table->frame = NULL;
+	sup_table->dirty = false;
+	sup_table->loc = DISK;
+	sup_table->owner = f;
+	sup_table->offset = ofs;
+	sup_table->read_bytes = page_read_bytes;
+	sup_table->zero_bytes = page_zero_bytes;
+	sup_table->writeable = writable;
+	sup_table->swap_index = -1;
+	return hash_insert(&thread_current()->sup_page_table, &sup_table->hash_elem) == NULL;
 }
 
 bool 
