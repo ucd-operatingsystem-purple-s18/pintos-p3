@@ -4,7 +4,7 @@
 
 # NOTE: To allow execution of this script, run the following command:
 #   chmod +x ./pintos-*-tests.sh
-
+#
 
 main () 
 {
