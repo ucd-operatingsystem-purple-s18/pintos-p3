@@ -4,10 +4,8 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-//===================
 #include "threads/synch.h"
-//===================
-//P3=====
+#include "lib/kernel/hash.h"
 #include "vm/page.h"
 
 /* States in a thread's life cycle. */
@@ -99,8 +97,6 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 
-    struct hash *sup_page_table; //gonna hold the pages for this process
-
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -112,6 +108,9 @@ struct thread
     struct shared_data *parent_share; /* pointer to hold the data shared with this process parent (should only be one) */
 #endif
 
+#ifdef VM
+    struct hash sup_page_table;         /* Used for supplemental page table */
+#endif
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };

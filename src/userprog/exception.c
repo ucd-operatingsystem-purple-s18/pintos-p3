@@ -6,6 +6,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 
+//#define DEBUG_PF
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
@@ -177,9 +178,23 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  /* redundant, but we will keep this in here for now */
-  if(!is_user_vaddr(fault_addr))
-    exit(-1);
+  #ifdef DEBUG_PF
+  printf ("Page fault at %p: %s error %s page in %s context.\n",
+          fault_addr,
+          not_present ? "not present" : "rights violation",
+          write ? "writing" : "reading",
+          user ? "user" : "kernel"); //True: access by user, false: access by kernel. 
+  #endif
+
+  #if VM
+  if(fault_addr != NULL)
+  {
+    void* page = pg_round_down(fault_addr);
+    if(!page_in(page))
+      goto done;
+  }
+  #endif
+  done:
 
   /* If a page fault occured in kernel or in an unmapped space 
      we set eax to 0xffffffff and copy its former value into eip. */
@@ -189,15 +204,4 @@ page_fault (struct intr_frame *f)
     f->eax = 0xffffffff;
     exit(-1);
   }
-
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  kill (f);
 }
-
