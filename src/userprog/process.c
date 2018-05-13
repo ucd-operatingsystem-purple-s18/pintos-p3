@@ -327,8 +327,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-    // Allocate and initialize the page hash table.
-  hash_init(&t->sup_page_table, &page_hash, &page_hash_less, NULL);
+  t->sup_page_table = malloc(sizeof(struct hash));
+  hash_init(t->sup_page_table, &page_hash, &page_hash_less, NULL);
+
 
   /* Open executable file. */
   file = filesys_open (exec_name);
@@ -536,13 +537,12 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   sup_table->num_bytes = read_bytes;
   sup_table->writeable = writable;
   sup_table->swap_index = -1;
-
-  if(hash_insert(&t->sup_page_table, &sup_table->hash_elem) != NULL)
-  {
-    PANIC("Element already exists in Sup Page Hashtable!\n");
-    return false;
-  }
-  return true;
+  hash_insert(&t->sup_page_table, &sup_table->hash_elem);
+  // if(hash_insert(&t->sup_page_table, &sup_table->hash_elem) != NULL)
+  // {
+  //   PANIC("Element already exists in Sup Page Hashtable!\n");
+  //   return false;
+  // }
 
 #else
       /* Get a page of memory. */
@@ -610,7 +610,8 @@ setup_stack (void **esp, char *in_args)
   sup_table->num_bytes = 0;
   sup_table->writeable = true;
   sup_table->swap_index = -1;
-  struct frame_entry* frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
+  struct frame_entry *frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
+  kpage = frame->page;
   sup_table->frame = frame;
   kpage = frame->page;
 #else

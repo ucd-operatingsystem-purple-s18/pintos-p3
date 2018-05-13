@@ -19,7 +19,6 @@ page_hash(const struct hash_elem *e, void *aux)
 bool
 page_in(void* page)
 {
-    // 1. Check if the memory reference is valid
     struct sup_page_entry *sup_table = page_lookup(page);
 
     if(sup_table == NULL) 
@@ -38,7 +37,6 @@ page_in(void* page)
         return false;
     if(sup_table->loc == DISK)
     {
-        //file_seek(sup_table->owner, sup_table->offset);
         if (file_read (sup_table->owner, frame, sup_table->num_bytes) != sup_table->num_bytes)
         {
             frame_free_page (frame, sup_table);
@@ -46,6 +44,7 @@ page_in(void* page)
         }
         sup_table->loc = FRAME;
         sup_table->kpage = frame;
+        return true;
     }
     if(sup_table->loc == SWAP)
         return false;
