@@ -178,49 +178,30 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 
-  /* redundant, but we will keep this in here for now */
-  /*
-  if(!is_user_vaddr(fault_addr))
-    exit(-1);
-
-  //If a page fault occured in kernel or in an unmapped space 
-  //   we set eax to 0xffffffff and copy its former value into eip.
-  if(!user || not_present)
-  {
-    f->eip = (void*)f->eax;
-    f->eax = 0xffffffff;
-    exit(-1);
-  }
-  */
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  
   #ifdef DEBUG_PF
   printf ("Page fault at %p: %s error %s page in %s context.\n",
           fault_addr,
           not_present ? "not present" : "rights violation",
           write ? "writing" : "reading",
           user ? "user" : "kernel"); //True: access by user, false: access by kernel. 
-  //try to use the page_fault instead.
-  //kill (f);
-  /*
-    Page fault handler should do:
-    - Locate the page faulted and find the data that goes in the page (might be in file system or swap slot or none).
-    - Obtain a frame to store the page.
-    - Fetch the data into the frame.
-    - Point the page table entry for the faulting virtual address to the physical.
-        (see userprog/pagedir.c).
-  */
- //not working --> add in user check
-  //if (not_present){
-  //if (not_present && user){ /* True: access by user, false: access by kernel. */
   #endif
-  //if(fault_addr == NULL || !is_user_vaddr(fault_addr)){
-    //trying to include if the fault is not present
-    if(fault_addr == NULL || !is_user_vaddr(fault_addr) || !not_present){
-    kill (f);
-  }else if(not_present && user){
-    page_in(fault_addr);
+
+  #if VM
+  if(fault_addr != NULL)
+  {
+    void* page = pg_round_down(fault_addr);
+    if(!page_in(page))
+      goto done;
+  }
+  #endif
+  done:
+
+  /* If a page fault occured in kernel or in an unmapped space 
+     we set eax to 0xffffffff and copy its former value into eip. */
+  if(!user || not_present)
+  {
+    f->eip = (void*)f->eax;
+    f->eax = 0xffffffff;
+    exit(-1);
   }
 }

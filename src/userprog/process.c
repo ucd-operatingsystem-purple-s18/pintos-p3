@@ -328,9 +328,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
     // Allocate and initialize the page hash table.
-  t->page_table = malloc(sizeof(struct hash));
-  hash_init(t->page_table, &page_hash, &page_less, NULL);
-
+  hash_init(&t->sup_page_table, &page_hash, &page_hash_less, NULL);
 
   /* Open executable file. */
   file = filesys_open (exec_name);
@@ -521,7 +519,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   struct thread *t = thread_current();
 
   /* create DISK supplemental page table */
-  struct sup_page_table *sup_table = (struct sup_page_table*)malloc(sizeof(struct sup_page_table));
+  struct sup_page_entry *sup_table = (struct sup_page_entry*)malloc(sizeof(struct sup_page_entry));
   if(sup_table == NULL)
   {
     free(sup_table);
@@ -536,7 +534,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   sup_table->owner = file;
   sup_table->offset = ofs;
   sup_table->num_bytes = read_bytes;
-  sup_table->writeable = writeable;
+  sup_table->writeable = writable;
   sup_table->swap_index = -1;
 
   if(hash_insert(&t->sup_page_table, &sup_table->hash_elem) != NULL)
@@ -546,11 +544,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   }
   return true;
 
-
 #else
       /* Get a page of memory. */
-      //uint8_t *kpage = palloc_get_page (PAL_USER);
-      uint8_t *kpage = frame_alloc (PAL_USER);
+      uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
         return false;
 
@@ -562,8 +558,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
           When the page is freed, the bits are set to false, 
               That means that the page is now unmapped.
     */
-          //palloc_free_page (kpage);
-          frame_free (kpage);
+          palloc_free_page (kpage);
           return false; 
         }
 
@@ -573,8 +568,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       if (!install_page (upage, kpage, writable)) 
         {
 
-          //palloc_free_page (kpage);
-          frame_free (kpage);
+          palloc_free_page (kpage);
           return false; 
         }
 #endif
@@ -600,7 +594,7 @@ setup_stack (void **esp, char *in_args)
   
 #ifdef VM
   /* create FRAME supllemental page table and put into frame */
-  struct sup_page_table *sup_table = (struct sup_page_table*)malloc(sizeof(struct sup_page_table));
+  struct sup_page_entry *sup_table = (struct sup_page_entry*)malloc(sizeof(struct sup_page_entry));
   if(sup_table == NULL)
   {
     free(sup_table);
@@ -616,11 +610,11 @@ setup_stack (void **esp, char *in_args)
   sup_table->num_bytes = 0;
   sup_table->writeable = true;
   sup_table->swap_index = -1;
-  frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
+  struct frame_entry* frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
   sup_table->frame = frame;
   kpage = frame->page;
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
 #else
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
 #endif
   if (kpage != NULL) 
     {
@@ -691,14 +685,14 @@ setup_stack (void **esp, char *in_args)
         //*esp -= 4;
         //printf("esp =%x\n",*esp);
       }
-      else
-          /*
-          we need to call palloc_free_page  in order to free the page.
-          When the page is freed, the bits are set to false, 
-              That means that the page is now unmapped.
-    */
-        //palloc_free_page (kpage);
-        frame_free (kpage);
+    }
+    else
+    {
+      #ifdef VM
+        frame_free_page(kpage, sup_table);
+      #else
+      palloc_free_page (kpage);
+      #endif
     }
   return success;
 }
@@ -721,4 +715,3 @@ install_page (void *upage, void *kpage, bool writable)
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
-//===========================================

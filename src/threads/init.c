@@ -122,6 +122,10 @@ main (void)
   serial_init_queue ();
   timer_calibrate ();
 
+#ifdef VM
+  frame_table_init();
+#endif
+
 #ifdef FILESYS
   /* Initialize file system. */
   ide_init ();
@@ -129,7 +133,6 @@ main (void)
   filesys_init (format_filesys);
 #endif
 
-  init_user_mem();
   printf ("Boot complete.\n");
   
   /* Run actions specified on kernel command line. */

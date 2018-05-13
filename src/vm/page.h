@@ -23,8 +23,7 @@ struct sup_page_entry
 
 	struct frame_entry *frame;
 	bool dirty;
-	bool page_location loc;
-
+	enum page_location loc;
 
 	/* if in file */
 	struct file *owner;
@@ -41,6 +40,7 @@ struct sup_page_entry
 };
 
 unsigned page_hash(const struct hash_elem *e, void *aux);
+bool page_in(void* page);
 void page_out(struct hash_elem *e, void*aux);
 void* page_lookup(void*);
 bool page_hash_less(const struct hash_elem *a, const struct hash_elem *b, void* aux);
