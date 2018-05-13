@@ -1,16 +1,24 @@
-#ifndef _FRAME_H
-#define _FRAME_H
+#ifndef VM_FRAME_H
+#define VM_FRAME_H
 
-#include "threads/synch.h"
-#include "vm/page.h"
+#include "threads/thread.h"
+#include "threads/palloc.h"
 
-// Structure to represent a frame in memory.
-struct frame{
-    struct lock f_lock;
-    void* base;
-    struct page *page;
+struct frame_entry 
+{
+  void *page;
+  struct sup_page_entry *spte;
+  struct thread* cur_thread;
+  struct list_elem elem;
 };
 
-void init_user_mem(void);
-struct frame *get_free_frame(void);
-#endif
+
+void frame_table_init (void);
+void* frame_get_page (enum palloc_flags flags, void* spte);
+void* frame_get_multiple (enum palloc_flags flags, void* spte, size_t page_cnt);
+void frame_free_page (void *,void*spte);
+void frame_free_multiple (void *, void* spte, size_t page_cnt);
+void* frame_evict(enum palloc_flags flags, void* spte);
+
+
+#endif /* vm/frame.h */

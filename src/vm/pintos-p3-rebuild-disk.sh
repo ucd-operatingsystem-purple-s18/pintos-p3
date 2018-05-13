@@ -37,7 +37,7 @@ main ()
 
     if (( $BUILD_SUCCESS )); then
         cd
-        cd ~/pintos/src/userprog/build
+        cd ~/pintos/src/vm/build
         pintos-mkdisk filesys.dsk --filesys-size=2
         pintos -f -q
          if [[ "$@" == "-examples" ]]
