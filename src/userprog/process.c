@@ -18,6 +18,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h" 
+#include "vm/page.h"
 
 #include "userprog/syscall.h"
 #include "vm/frame.h"
@@ -84,36 +85,25 @@ process_execute (const char *file_name)
 static void
 start_process (void *in_data)
 {
-  //char *file_name = file_name_;
   struct intr_frame if_;
-  //bool success;
-  //create our local struct, based on our incoming reference
-  struct pass_in *data = (struct pass_in*) in_data;
-  //-----------------------------------------------------------
 
-  //need to allocate the structure for the pass_in data, here???
+  struct pass_in *data = (struct pass_in*) in_data;
+
   struct shared_data *share = malloc(sizeof(struct shared_data));
 
-  //sema_init(&share->wait_sema, 0);
-  //everything for the shared data needs to be allocated for
   sema_init(&share->dead_sema, 0);
 
   lock_init(&share->ref_lock);
-  //Setting that struct share attribute as our current thread id
-  share->tid = thread_current()->tid;
+  struct thread *t = thread_current();
+  share->tid = t->tid;
   share->exit_code = -2;
-  //share->reference_count = 2;
   share->ref_count = 2;
-  //thread_current()->parent_share = share;
 
   data->shared = share;
 
-  //Now we need to add the structure to the parent thread's list
-  //list_push_front(&data->parent->children, &share->child_elem);
-  //current thread
   thread_current()->parent_share = share;
-  //-----------------------------------------------------------
 
+  hash_init(&t->sup_page_table, page_hash, page_hash_less, NULL);
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -127,7 +117,6 @@ start_process (void *in_data)
 
   if(!data->load_success) 
     thread_exit();
-    //-----------------------------------------------------------
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -151,12 +140,6 @@ start_process (void *in_data)
 int
 process_wait (tid_t child_tid) 
 {
-  //struct thread *rt_thread;
-  //rt_thread = thread_at_tid(child_tid);
-  //if(rt_thread->tid == -1)
-  //{
-  //  return -1;
-  //}
   struct thread *t = thread_current();
   struct list_elem *e;
   for (e = list_begin (&t->children); e != list_end (&t->children); e = list_next (e))
@@ -179,7 +162,6 @@ void process_exit (void)
   struct thread *cur = thread_current();
   uint32_t *pd;
 
-  //================================================
   // If the child outlives the parent, the child must deallocate the
   // shared memory.
   if(cur->parent_share->ref_count == 1)
@@ -331,59 +313,29 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
 
-  //-----------------------------------------------------------
-  //----------------------------
-  //----------------------------
-  // New char* for first arg in file_name (the executable name)  
+
+  /* New char* for first arg in file_name (the executable name) */  
   char *exec_name = malloc(strlen(file_name) + 1);
   char *dummy_arg;
   strlcpy(exec_name, file_name, strlen(file_name) + 1);
-  // Get first argument of name.
-    /*
-  exp. strtok_r
-  
-          //We are splitting a string base on a space character
-          char str[] = "Geeks for Geeks";
-          char *token;
-          char *rest = str;
-          while ((token = strtok_r(rest, " ", &rest)))
-            printf("%s\n", token)
 
-            -->result = 
-                Geeks
-                for
-                Geeks
-  */
   strtok_r(exec_name, " ", &dummy_arg);
-  //----------------------------
-  //----------------------------
-  //-----------------------------------------------------------
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
 
-
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
-  // allocate and initialize the page hash table
-  // holds the page structures for each allocated page in this process
+    // Allocate and initialize the page hash table.
   t->page_table = malloc(sizeof(struct hash));
   hash_init(t->page_table, &page_hash, &page_less, NULL);
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
+
 
   /* Open executable file. */
-  //file = filesys_open (file_name);
   file = filesys_open (exec_name);
   if (file == NULL) 
     {
-      //printf ("load: %s: open failed\n", file_name);
       printf ("load: %s: open failed\n", exec_name);
       goto done; 
     }
@@ -463,19 +415,15 @@ load (const char *file_name, void (**eip) (void), void **esp)
           break;
         }
     }
-  //=======================================
   // Allocate a new string so we don't modify the original argument.
   char *args_ptr = malloc(strlen(file_name) + 1);
   strlcpy(args_ptr, file_name, strlen(file_name) + 1);
-  //=======================================
 
   /* Set up stack. 
   Remember we are sending in our pointer to our stack and
       the pointer to the allocated space, with our copied args
   */
-  //=======================================
   if (!setup_stack (esp, args_ptr))
-  //=======================================
     goto done;
 
   /* Start address. */
@@ -485,8 +433,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  //file_deny_write(file);
-  //file_close(file);
   return success;
 }
 
@@ -571,6 +517,37 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
+#ifdef VM
+  struct thread *t = thread_current();
+
+  /* create DISK supplemental page table */
+  struct sup_page_table *sup_table = (struct sup_page_table*)malloc(sizeof(struct sup_page_table));
+  if(sup_table == NULL)
+  {
+    free(sup_table);
+    return false;
+  }
+
+  sup_table->upage = upage;
+  sup_table->kpage = NULL;
+  sup_table->frame = NULL;
+  sup_table->dirty = false;
+  sup_table->loc = DISK;
+  sup_table->owner = file;
+  sup_table->offset = ofs;
+  sup_table->num_bytes = read_bytes;
+  sup_table->writeable = writeable;
+  sup_table->swap_index = -1;
+
+  if(hash_insert(&t->sup_page_table, &sup_table->hash_elem) != NULL)
+  {
+    PANIC("Element already exists in Sup Page Hashtable!\n");
+    return false;
+  }
+  return true;
+
+
+#else
       /* Get a page of memory. */
       //uint8_t *kpage = palloc_get_page (PAL_USER);
       uint8_t *kpage = frame_alloc (PAL_USER);
@@ -600,10 +577,12 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
           frame_free (kpage);
           return false; 
         }
+#endif
 
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
+      ofs += PGSIZE;
       upage += PGSIZE;
     }
   return true;
@@ -611,31 +590,47 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 
 static bool
-//setup_stack (void **esp) 
 setup_stack (void **esp, char *in_args) 
 {
 
   uint8_t *kpage;
   bool success = false;
   int index = 0;
-  const int WORD_LIMIT = 50; //our char pe/rlimit from the manual
+  const int WORD_LIMIT = 50;
   
-  //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  kpage = frame_alloc (PAL_USER | PAL_ZERO);
-  //if it is not NULL then it was allocated and we can continue
-  
+#ifdef VM
+  /* create FRAME supllemental page table and put into frame */
+  struct sup_page_table *sup_table = (struct sup_page_table*)malloc(sizeof(struct sup_page_table));
+  if(sup_table == NULL)
+  {
+    free(sup_table);
+
+    return false;
+  }
+  sup_table->upage = NULL;
+  sup_table->kpage = PHYS_BASE-PGSIZE;
+  sup_table->dirty = false;
+  sup_table->loc = FRAME;
+  sup_table->offset = 0;
+  sup_table->owner = NULL;
+  sup_table->num_bytes = 0;
+  sup_table->writeable = true;
+  sup_table->swap_index = -1;
+  frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
+  sup_table->frame = frame;
+  kpage = frame->page;
+  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+#else
+#endif
   if (kpage != NULL) 
     {
-
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-
       if (success)
       {  
         // Parsing arguments:
         char *current;
         char *buffer;
         char *current_arg[WORD_LIMIT];
-
 
         for(current = strtok_r(in_args, " ", &buffer); current != NULL; current = strtok_r(NULL, " ", &buffer))
         {

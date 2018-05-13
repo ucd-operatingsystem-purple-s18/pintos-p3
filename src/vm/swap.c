@@ -4,7 +4,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 
-#define PAGE_SECTORS PGSIZE/BLOCK_SECTOR_SIZE
-static struct block* global_swap;
-static struct bitmap global_bitmap;
+static struct bitmap used_swaps;
+struct block *swap_table;
+
 static struct lock swap_lock;
