@@ -117,42 +117,42 @@ main ()
         test-syn-remove 
         test-syn-write
 
-        # test-pt-grow-stack
-        # test-pt-grow-pusha
-        # test-pt-grow-bad
-        # test-pt-big-stk-obj
-        # test-pt-bad-addr
-        # test-pt-bad-read
-        # test-pt-write-code
-        # test-pt-write-code2
-        # test-pt-grow-stk-sc
+        test-pt-grow-stack
+        test-pt-grow-pusha
+        test-pt-grow-bad
+        test-pt-big-stk-obj
+        test-pt-bad-addr
+        test-pt-bad-read
+        test-pt-write-code
+        test-pt-write-code2
+        test-pt-grow-stk-sc
 
-        # test-page-linear
-        # test-page-parallel
-        # test-page-merge-seq
-        # test-page-merge-par
-        # test-page-merge-stk
-        # test-page-merge-mm
-        # test-page-shuffle
+        test-page-linear
+        test-page-parallel
+        test-page-merge-seq
+        test-page-merge-par
+        test-page-merge-stk
+        test-page-merge-mm
+        test-page-shuffle
 
-        # test-mmap-read
-        # test-mmap-close
-        # test-mmap-unmap
-        # test-mmap-overlap
-        # test-mmap-twice
-        # test-mmap-write
-        # test-mmap-exit
-        # test-mmap-shuffle
-        # test-mmap-bad-fd
-        # test-mmap-clean
-        # test-mmap-inherit
-        # test-mmap-misalign
-        # test-mmap-null
-        # test-mmap-over-code
-        # test-mmap-over-data
-        # test-mmap-over-stk
-        # test-mmap-remove
-        # test-mmap-zero
+        test-mmap-read
+        test-mmap-close
+        test-mmap-unmap
+        test-mmap-overlap
+        test-mmap-twice
+        test-mmap-write
+        test-mmap-exit
+        test-mmap-shuffle
+        test-mmap-bad-fd
+        test-mmap-clean
+        test-mmap-inherit
+        test-mmap-misalign
+        test-mmap-null
+        test-mmap-over-code
+        test-mmap-over-data
+        test-mmap-over-stk
+        test-mmap-remove
+        test-mmap-zero
 
         
         echo -e "\n   SCRIPT EXECUTION TERMINATED SUCCESSFULLY. \n"

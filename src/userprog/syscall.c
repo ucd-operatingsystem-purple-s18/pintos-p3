@@ -456,3 +456,5 @@ get_user (const uint8_t *uaddr)
   : "=&a" (result) : "m" (*uaddr));
   return result;
 }
+
+//
