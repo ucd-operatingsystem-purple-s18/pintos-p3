@@ -9,9 +9,7 @@
 #endif
 
 /* Element type.
-
    This must be an unsigned integer type at least as wide as int.
-
    Each bit represents one bit in the bitmap.
    If bit 0 in an element represents bit K in the bitmap,
    then bit 1 in the element represents bit K+1 in the bitmap,
@@ -368,4 +366,3 @@ bitmap_dump (const struct bitmap *b)
 {
   hex_dump (0, b->bits, byte_cnt (b->bit_cnt), false);
 }
-

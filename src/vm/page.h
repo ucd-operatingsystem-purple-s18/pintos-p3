@@ -43,8 +43,8 @@ unsigned page_hash(const struct hash_elem *e, void *aux);
 bool page_in(void*);
 void page_out(struct hash_elem *e, void*aux);
 void* page_lookup(void*);
-bool page_add_file(struct file *f, int32_t ofs, uint8_t *upage, uint32_t page_read_bytes, uint32_t page_zero_bytes, bool writable);
 bool page_hash_less(const struct hash_elem *a, const struct hash_elem *b, void* aux);
+bool page_add_file(struct file *f, int32_t ofs, uint8_t *upage, uint32_t page_read_bytes, uint32_t page_zero_bytes, bool writable);
 
 
 #endif

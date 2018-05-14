@@ -31,6 +31,7 @@ page_in(void* page)
         return false;
 
 
+
     if(sup_table->loc == FRAME)
         return true;
     else if(sup_table->loc == DISK)

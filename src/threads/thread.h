@@ -4,10 +4,8 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
-//===================
 #include "threads/synch.h"
-//===================
-//P3=====
+#include "lib/kernel/hash.h"
 #include "vm/page.h"
 #include "lib/kernel/hash.h"
 
@@ -106,11 +104,10 @@ struct thread
     //==============P3===========
     void *user_esp;//hold the user virtual stack pointer
     //==============P3===========
-    struct hash sup_page_table; //gonna hold the pages for this process
+    struct hash *page_table; //gonna hold the pages for this process
     //==============P3===========
     //==============P3===========
     //==============P3===========
-
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

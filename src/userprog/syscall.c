@@ -19,7 +19,6 @@
 
 
 static void syscall_handler (struct intr_frame *);
-static struct lock filesys_lock;
 static int get_user (const uint8_t *uaddr);
 struct list_elem *get_list_elem(int fd);
 
@@ -27,6 +26,7 @@ void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(&filesys_lock);
 }
 
 static void

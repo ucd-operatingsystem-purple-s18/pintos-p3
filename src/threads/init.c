@@ -130,10 +130,10 @@ main (void)
 #endif
 
 //for p3
-//Put initialization for user memeory here
 //init_user_mem();
-  frame_table_init();
+//Put initialization for user memeory here
 
+  frame_table_init();
   printf ("Boot complete.\n");
   
   /* Run actions specified on kernel command line. */
