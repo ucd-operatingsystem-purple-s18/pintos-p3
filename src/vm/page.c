@@ -36,9 +36,9 @@ page_in(void* page)
         return true;
     else if(sup_table->loc == DISK)
     {
-
+        file_seek(sup_table->owner, sup_table->offset);
         /* Load this page. */
-        if (file_read_at(sup_table->owner, kpage, sup_table->read_bytes, sup_table->offset) != (int) sup_table->read_bytes)
+        if (file_read(sup_table->owner, kpage, sup_table->read_bytes) != (int) sup_table->read_bytes)
         {
             /*
             we need to call palloc_free_page  in order to free the page.
@@ -49,7 +49,7 @@ page_in(void* page)
             return false; 
         }
 
-        memset (kpage + sup_table->read_bytes, 0, PGSIZE-sup_table->read_bytes);
+        memset (kpage + sup_table->read_bytes, 0, PGSIZE-sup_table->read_bytes); /*HACK : PGSIZE-read_bytes should be zero_bytes */
 
 
         /* Add the page to the process's address space. */
