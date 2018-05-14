@@ -194,7 +194,7 @@ void process_exit (void)
     }
   }
   /* free sup_page_table */
-  free(cur->sup_page_table);
+  //free(cur->sup_page_table);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -324,7 +324,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
     goto done;
-  hash_init(&thread_current()->sup_page_table, page_hash, page_hash_less, NULL);
   process_activate ();
 
   /* load thread sup_page_table */
@@ -517,11 +516,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       // if(!page_add_file(file, ofs, upage, page_read_bytes, page_zero_bytes, writable))
       //   return false;
 
-#ifdef VM  
-  if(!page_add_file(file, ofs, upage, page_read_bytes, page_zero_bytes, writable))
-    return false;
-
-#else
       /* Get a page of memory. */
       uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
@@ -548,7 +542,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
           palloc_free_page (kpage);
           return false; 
         }
-#endif
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -569,31 +562,8 @@ setup_stack (void **esp, char *in_args)
   int index = 0;
   const int WORD_LIMIT = 50;
   
-#ifdef VM
-  /* create FRAME supllemental page table and put into frame */
-  struct sup_page_entry *sup_table = (struct sup_page_entry*)malloc(sizeof(struct sup_page_entry));
-  if(sup_table == NULL)
-  {
-    free(sup_table);
 
-    return false;
-  }
-  sup_table->upage = NULL;
-  sup_table->kpage = PHYS_BASE-PGSIZE;
-  sup_table->dirty = false;
-  sup_table->loc = FRAME;
-  sup_table->offset = 0;
-  sup_table->owner = NULL;
-  sup_table->read_bytes = 0;
-  sup_table->zero_bytes = 0;
-  sup_table->writeable = true;
-  sup_table->swap_index = -1;
-  struct frame_entry *frame = frame_get_page(PAL_USER | PAL_ZERO, sup_table);
-  kpage = frame->page;
-  sup_table->frame = frame;
-#else
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-#endif
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
@@ -663,14 +633,6 @@ setup_stack (void **esp, char *in_args)
         //*esp -= 4;
         //printf("esp =%x\n",*esp);
       }
-    }
-    else
-    {
-      #ifdef VM
-        frame_free_page(kpage, sup_table);
-      #else
-      palloc_free_page (kpage);
-      #endif
     }
   return success;
 }

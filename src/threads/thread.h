@@ -104,7 +104,7 @@ struct thread
     //==============P3===========
     void *user_esp;//hold the user virtual stack pointer
     //==============P3===========
-    struct hash *page_table; //gonna hold the pages for this process
+    struct hash sup_page_table; //gonna hold the pages for this process
     //==============P3===========
     //==============P3===========
     //==============P3===========
