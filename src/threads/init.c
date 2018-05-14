@@ -132,6 +132,7 @@ main (void)
 //for p3
 //Put initialization for user memeory here
 //init_user_mem();
+  frame_table_init();
 
   printf ("Boot complete.\n");
   

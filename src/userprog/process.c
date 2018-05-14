@@ -112,7 +112,6 @@ start_process (void *in_data)
   thread_current()->parent_share = share;
   //-----------------------------------------------------------
 
-
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -360,21 +359,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
   t->pagedir = pagedir_create();
   if (t->pagedir == NULL) 
     goto done;
+  hash_init(&thread_current()->sup_page_table, page_hash, page_hash_less, NULL);
   process_activate ();
 
-
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
-  // allocate and initialize the page hash table
-  // holds the page structures for each allocated page in this process
-  t->page_table = malloc(sizeof(struct hash));
-  hash_init(t->page_table, &page_hash, &page_less, NULL);
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
-  //===P3=========================
 
   /* Open executable file. */
   //file = filesys_open (file_name);
@@ -568,6 +555,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
+      // if(!page_add_file(file, ofs, upage, page_read_bytes, page_zero_bytes, writable))
+      //   return false;
 
       /* Get a page of memory. */
       uint8_t *kpage = palloc_get_page (PAL_USER);
@@ -577,11 +566,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Load this page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
-    /*
-          we need to call palloc_free_page  in order to free the page.
-          When the page is freed, the bits are set to false, 
-              That means that the page is now unmapped.
-    */
+    
+          //  we need to call palloc_free_page  in order to free the page.
+          // When the page is freed, the bits are set to false, 
+          //     That means that the page is now unmapped. 
+    
           palloc_free_page (kpage);
           return false; 
         }
