@@ -4,92 +4,133 @@
 #include "vm/frame.h"
 #include "threads/malloc.h"
 #include "threads/palloc.h"
-//=======p3
+#include "userprog/syscall.h"
+#include "userprog/process.h"
 #include <string.h>
 
 
 
 
-unsigned page_hash(const struct hash_elem *e, void *aux) {
-    struct page *pg = hash_entry(e, struct page, hash_elem);
-    //change the return pull
-    //return ((int) pg->addr << PGBITS);
-    return ((int) pg->addr >> PGBITS);
+unsigned 
+page_hash(const struct hash_elem *e, void *aux)
+{
+    const struct sup_page_entry* sup_table = hash_entry(e, struct sup_page_entry, hash_elem);
+    return hash_bytes(&sup_table->upage, sizeof(sup_table->upage));
 }
 
-bool page_less(const struct hash_elem *a, const struct hash_elem *b, void* aux){
-    struct page *first = hash_entry(a, struct page, hash_elem);
-    struct page *second = hash_entry(b, struct page, hash_elem);
-
-    return (first->addr < second->addr);
-}
-
-//change
-//function to get a user page of memory
-//void *get_user_page(enum palloc_flags flags){
-// change function 
-// struct return -- still to get a user page of memory.
-//struct page *get_user_page(){
-// change to pulling based on our allocation, not a straight pull
-// Allocates a page of memory that contains the address void* addr.
-// Note: Doesn't allocate the struct frame yet. This is handled in page_in().
-struct page *page_allocate(void* addr){
-    struct page *p = malloc(sizeof(struct page));
-    struct thread *t = thread_current();
+bool
+page_in(void* page)
+{
+    page = pg_round_down(page);
+    /* Get a page of memory. */
+    uint8_t *kpage = palloc_get_page(PAL_USER | PAL_ZERO);
+    if (kpage == NULL)
+        return false;
+    struct sup_page_entry *sup_table = (struct sup_page_entry*) page_lookup(page);
+    if(sup_table == NULL)
+        return false;
 
 
-    p->addr = pg_round_down(addr);
-    struct hash_elem *h_elem = hash_insert(t->page_table, &p->hash_elem);
-    // This page already exists in the table.
-    if(h_elem != NULL){
-        // free the existing structure.
-        free(p);
-        // Return the structure that already exists in the table.
-        return hash_entry(h_elem, struct page, hash_elem);
-    }else{
-        // Return the newly allocated page.
-        p->file = NULL;
-        p->frame = NULL;
-        p->sector = NULL;
-        return p;
-        
-    }
-}
-/*
-USC Notes
-Virtual Address vs Physical Address
-Recall that virtual address is the processes’ addresses that they
-use. Physical memory is the actual memory in the hardware.
-You will have to do all the book-keeping to keep track of which physical
-memory is mapped to which processes’ virtual memory. This happens
-when you map a memory from physical to virtual.
-*/
-//========================================================
-bool page_in(void *addr){
-    struct thread *t = thread_current();
 
-    // Temporary page structure.
-    struct page p;
-
-    // Set p to the address we were given above.
-    p.addr = pg_round_down(addr);
-    struct hash_elem *h_elem = hash_find(t->page_table, &p.hash_elem);
-
-    if(!h_elem){
-
-        // Pointer to the new page.
-        struct page *pg = hash_entry(h_elem, struct page, hash_elem);
-
-        // Create a new zeroed page.
-        if(pg->file == NULL && pg->sector == NULL && pg->frame == NULL){
-            pg->frame = get_free_frame();
-            lock_acquire(&pg->frame->f_lock);
-            memset(pg->frame->base, 0, PGSIZE);
-            lock_release(&pg->frame->f_lock);
+    if(sup_table->loc == FRAME)
+        return true;
+    else if(sup_table->loc == DISK)
+    {
+        file_seek(sup_table->owner, sup_table->offset);
+        /* Load this page. */
+        if (file_read(sup_table->owner, kpage, sup_table->read_bytes) != (int) sup_table->read_bytes)
+        {
+            /*
+            we need to call palloc_free_page  in order to free the page.
+            When the page is freed, the bits are set to false, 
+              That means that the page is now unmapped.
+            */
+            palloc_free_page(kpage);
+            return false; 
         }
+
+        memset (kpage + sup_table->read_bytes, 0, PGSIZE-sup_table->read_bytes); /*HACK : PGSIZE-read_bytes should be zero_bytes */
+
+
+        /* Add the page to the process's address space. */
+        if(! (pagedir_get_page (&thread_current()->pagedir, sup_table->upage) == NULL && 
+            pagedir_set_page (&thread_current()->pagedir, sup_table->upage, kpage, sup_table->writeable)))
+        //if (!install_page (sup_table->upage, kpage, sup_table->writeable)) 
+        {
+
+            palloc_free_page (kpage);
+            return false; 
+        }
+
+        sup_table->loc = FRAME;
+        sup_table->kpage = kpage;
     }
+    else if(sup_table->loc == SWAP)
+        return false;
+    else
+        PANIC ("Page entry is in an unknown state!\n");
+
+    return true;
 }
 
-bool page_in_core(struct page *in_page){
-    
+void 
+page_out(struct hash_elem *e, void*aux)
+{
+    /* let me see how everything functions first */
+    struct sup_page_entry *sup_table = hash_entry(e, struct sup_page_entry, hash_elem);
+    /*
+    void *upage;
+    void *kpage;
+    struct frame_entry *frame;
+    bool dirty;
+    enum page_location loc;
+    struct file *owner;
+    off_t offset;
+    size_t num_bytes;
+    bool writeable;
+    size_t swap_index;
+    struct hash_elem hash_elem;
+    */
+}
+
+void* 
+page_lookup(void* page)
+{
+    struct sup_page_entry p;
+    struct hash_elem *e;
+    p.upage = page;
+    e = hash_find (&thread_current()->sup_page_table, &p.hash_elem);
+    return e != NULL ? hash_entry (e, struct sup_page_entry, hash_elem) : NULL;
+}
+
+bool 
+page_add_file(struct file *f, int32_t ofs, uint8_t *upage, uint32_t page_read_bytes, uint32_t page_zero_bytes, bool writable)
+{
+
+    struct sup_page_entry *sup_table = (struct sup_page_entry*)malloc(sizeof(struct sup_page_entry));
+    if(sup_table == NULL)
+    {
+        free(sup_table);
+        return false;
+    }
+
+    sup_table->upage = upage;
+    sup_table->kpage = NULL;
+    sup_table->dirty = false;
+    sup_table->loc = DISK;
+    sup_table->owner = f;
+    sup_table->offset = ofs;
+    sup_table->read_bytes = page_read_bytes;
+    sup_table->zero_bytes = page_zero_bytes;
+    sup_table->writeable = writable;
+    sup_table->swap_index = -1;
+    return hash_insert(&thread_current()->sup_page_table, &sup_table->hash_elem) != NULL;
+}
+
+bool 
+page_hash_less(const struct hash_elem *a, const struct hash_elem *b, void* aux)
+{
+    const struct sup_page_entry *left = hash_entry(a, struct sup_page_entry, hash_elem);
+    const struct sup_page_entry *right = hash_entry(b, struct sup_page_entry, hash_elem);
+    return left->upage < right->upage; /* virtual address */
 }
